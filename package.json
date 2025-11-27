@@ -1,5 +1,9 @@
 {
     "$schema": "https://www.schemastore.org/package.json",
+    "name": "opencopy",
+    "description": "Open source, self-hosted Laravel app that generates SEO-optimized articles using AI.",
+    "author": "Anton Chemerys <anton@qloudsoft.com>",
+    "license": "MIT",
     "private": true,
     "type": "module",
     "scripts": {

@@ -26,3 +26,7 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+/CLAUDE.md
+/.claude
+/.cursor
+/.junie
