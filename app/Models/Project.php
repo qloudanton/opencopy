@@ -19,6 +19,25 @@ class Project extends Model
         'description',
         'settings',
         'is_active',
+        'default_ai_provider_id',
+        'default_word_count',
+        'default_tone',
+        'target_audience',
+        'brand_guidelines',
+        'primary_language',
+        'target_region',
+        'internal_links_per_article',
+        // Engagement settings
+        'brand_color',
+        'image_style',
+        'include_youtube_videos',
+        'include_emojis',
+        'include_infographic_placeholders',
+        'include_cta',
+        'cta_product_name',
+        'cta_website_url',
+        'cta_features',
+        'cta_action_text',
     ];
 
     protected function casts(): array
@@ -26,7 +45,18 @@ class Project extends Model
         return [
             'settings' => 'array',
             'is_active' => 'boolean',
+            'default_word_count' => 'integer',
+            'internal_links_per_article' => 'integer',
+            'include_youtube_videos' => 'boolean',
+            'include_emojis' => 'boolean',
+            'include_infographic_placeholders' => 'boolean',
+            'include_cta' => 'boolean',
         ];
+    }
+
+    public function defaultAiProvider(): BelongsTo
+    {
+        return $this->belongsTo(AiProvider::class, 'default_ai_provider_id');
     }
 
     public function user(): BelongsTo

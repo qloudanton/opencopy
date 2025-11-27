@@ -108,21 +108,43 @@ class AiProviderController extends Controller
             [
                 'value' => 'openai',
                 'label' => 'OpenAI',
-                'models' => ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+                'models' => [
+                    // GPT-5.1 (Latest)
+                    'gpt-5.1',
+                    // GPT-5 Family
+                    'gpt-5-mini',
+                    'gpt-5-nano',
+                    // GPT-4.1 Family
+                    'gpt-4.1',
+                    'gpt-4.1-mini',
+                    'gpt-4.1-nano',
+                    // Reasoning Models (o-series)
+                    'o3',
+                    'o4-mini',
+                    // GPT-4o (Legacy)
+                    'gpt-4o',
+                    'gpt-4o-mini',
+                ],
                 'requiresApiKey' => true,
                 'supportsCustomEndpoint' => true,
             ],
             [
                 'value' => 'anthropic',
                 'label' => 'Anthropic',
-                'models' => ['claude-sonnet-4-20250514', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229'],
+                'models' => [
+                    'claude-sonnet-4-20250514',
+                    'claude-opus-4-20250514',
+                    'claude-3-5-sonnet-20241022',
+                    'claude-3-5-haiku-20241022',
+                    'claude-3-opus-20240229',
+                ],
                 'requiresApiKey' => true,
                 'supportsCustomEndpoint' => false,
             ],
             [
                 'value' => 'ollama',
                 'label' => 'Ollama (Local)',
-                'models' => ['llama3', 'llama3:70b', 'mistral', 'mixtral', 'codellama'],
+                'models' => ['llama3.2', 'llama3.1:70b', 'llama3.1:8b', 'mistral', 'mixtral', 'codellama', 'qwen2.5:72b'],
                 'requiresApiKey' => false,
                 'supportsCustomEndpoint' => true,
                 'defaultEndpoint' => 'http://localhost:11434',
@@ -130,21 +152,21 @@ class AiProviderController extends Controller
             [
                 'value' => 'groq',
                 'label' => 'Groq',
-                'models' => ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
+                'models' => ['llama-3.3-70b-versatile', 'llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
                 'requiresApiKey' => true,
                 'supportsCustomEndpoint' => false,
             ],
             [
                 'value' => 'mistral',
                 'label' => 'Mistral AI',
-                'models' => ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'],
+                'models' => ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest', 'codestral-latest'],
                 'requiresApiKey' => true,
                 'supportsCustomEndpoint' => false,
             ],
             [
                 'value' => 'openrouter',
                 'label' => 'OpenRouter',
-                'models' => ['openai/gpt-4o', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.1-405b'],
+                'models' => ['openai/gpt-5.1', 'openai/gpt-5-mini', 'openai/gpt-4.1', 'openai/gpt-4o', 'anthropic/claude-sonnet-4', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.3-70b'],
                 'requiresApiKey' => true,
                 'supportsCustomEndpoint' => false,
             ],

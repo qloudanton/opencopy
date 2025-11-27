@@ -105,7 +105,7 @@ export default function Index({ project, articles }: Props) {
                                         <tr key={article.id} className="border-b last:border-0 hover:bg-muted/30">
                                             <td className="p-3">
                                                 <Link
-                                                    href={`/articles/${article.id}`}
+                                                    href={`/projects/${project.id}/articles/${article.id}`}
                                                     className="font-medium hover:underline"
                                                 >
                                                     {article.title}
@@ -141,7 +141,10 @@ export default function Index({ project, articles }: Props) {
                                                 </span>
                                             </td>
                                             <td className="p-3 text-sm text-muted-foreground">
-                                                {new Date(article.created_at).toLocaleDateString()}
+                                                {new Date(article.created_at).toLocaleString(undefined, {
+                                                    dateStyle: 'medium',
+                                                    timeStyle: 'short',
+                                                })}
                                             </td>
                                         </tr>
                                     ))}

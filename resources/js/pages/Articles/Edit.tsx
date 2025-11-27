@@ -33,20 +33,26 @@ interface Article {
     } | null;
 }
 
+interface Project {
+    id: number;
+    name: string;
+}
+
 interface Props {
+    project: Project;
     article: Article;
 }
 
-export default function Edit({ article }: Props) {
+export default function Edit({ project, article }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
-        { title: article.project.name, href: `/projects/${article.project.id}` },
+        { title: project.name, href: `/projects/${project.id}` },
         ...(article.keyword ? [
-            { title: 'Keywords', href: `/projects/${article.project.id}/keywords` },
-            { title: article.keyword.keyword, href: `/projects/${article.project.id}/keywords/${article.keyword.id}` },
+            { title: 'Keywords', href: `/projects/${project.id}/keywords` },
+            { title: article.keyword.keyword, href: `/projects/${project.id}/keywords/${article.keyword.id}` },
         ] : []),
-        { title: article.title, href: `/articles/${article.id}` },
-        { title: 'Edit', href: `/articles/${article.id}/edit` },
+        { title: article.title, href: `/projects/${project.id}/articles/${article.id}` },
+        { title: 'Edit', href: `/projects/${project.id}/articles/${article.id}/edit` },
     ];
 
     const { data, setData, put, processing, errors } = useForm({
@@ -58,7 +64,7 @@ export default function Edit({ article }: Props) {
 
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        put(`/articles/${article.id}`);
+        put(`/projects/${project.id}/articles/${article.id}`);
     }
 
     return (
@@ -137,7 +143,7 @@ export default function Edit({ article }: Props) {
 
                     <div className="flex justify-end gap-2">
                         <Button asChild variant="outline">
-                            <Link href={`/articles/${article.id}`}>Cancel</Link>
+                            <Link href={`/projects/${project.id}/articles/${article.id}`}>Cancel</Link>
                         </Button>
                         <Button type="submit" disabled={processing}>
                             Save Changes

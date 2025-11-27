@@ -53,7 +53,40 @@ class Article extends Model
             if (empty($article->slug)) {
                 $article->slug = Str::slug($article->title);
             }
+
+            // Ensure slug is unique within the project
+            $article->slug = static::generateUniqueSlug($article->slug, $article->project_id);
         });
+    }
+
+    /**
+     * Generate a unique slug within the project by appending a number if needed.
+     */
+    public static function generateUniqueSlug(string $slug, int $projectId, ?int $excludeId = null): string
+    {
+        $originalSlug = $slug;
+        $counter = 1;
+
+        while (static::slugExistsInProject($slug, $projectId, $excludeId)) {
+            $slug = $originalSlug.'-'.$counter;
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    /**
+     * Check if a slug already exists within the project.
+     */
+    protected static function slugExistsInProject(string $slug, int $projectId, ?int $excludeId = null): bool
+    {
+        $query = static::where('project_id', $projectId)->where('slug', $slug);
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return $query->exists();
     }
 
     public function project(): BelongsTo

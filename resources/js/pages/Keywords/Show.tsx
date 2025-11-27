@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { generate } from '@/actions/App/Http/Controllers/KeywordController';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Clock, FileText, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 interface Article {
@@ -13,6 +13,8 @@ interface Article {
     title: string;
     slug: string;
     status: string;
+    word_count: number;
+    reading_time_minutes: number;
     seo_score: number | null;
     created_at: string;
 }
@@ -195,7 +197,8 @@ export default function Show({ project, keyword }: Props) {
                                         <tr className="border-b bg-muted/50">
                                             <th className="p-3 text-left text-sm font-medium">Title</th>
                                             <th className="p-3 text-left text-sm font-medium">Status</th>
-                                            <th className="p-3 text-left text-sm font-medium">SEO Score</th>
+                                            <th className="p-3 text-left text-sm font-medium">Words</th>
+                                            <th className="p-3 text-left text-sm font-medium">Read Time</th>
                                             <th className="p-3 text-left text-sm font-medium">Created</th>
                                         </tr>
                                     </thead>
@@ -204,7 +207,7 @@ export default function Show({ project, keyword }: Props) {
                                             <tr key={article.id} className="border-b last:border-0 hover:bg-muted/30">
                                                 <td className="p-3">
                                                     <Link
-                                                        href={`/articles/${article.id}`}
+                                                        href={`/projects/${project.id}/articles/${article.id}`}
                                                         className="font-medium hover:underline"
                                                     >
                                                         {article.title}
@@ -216,10 +219,22 @@ export default function Show({ project, keyword }: Props) {
                                                     </Badge>
                                                 </td>
                                                 <td className="p-3 text-sm text-muted-foreground">
-                                                    {article.seo_score ?? '-'}
+                                                    <span className="flex items-center gap-1">
+                                                        <FileText className="h-3 w-3" />
+                                                        {article.word_count?.toLocaleString() || 0}
+                                                    </span>
                                                 </td>
                                                 <td className="p-3 text-sm text-muted-foreground">
-                                                    {new Date(article.created_at).toLocaleDateString()}
+                                                    <span className="flex items-center gap-1">
+                                                        <Clock className="h-3 w-3" />
+                                                        {article.reading_time_minutes || 1} min
+                                                    </span>
+                                                </td>
+                                                <td className="p-3 text-sm text-muted-foreground">
+                                                    {new Date(article.created_at).toLocaleString(undefined, {
+                                                        dateStyle: 'medium',
+                                                        timeStyle: 'short',
+                                                    })}
                                                 </td>
                                             </tr>
                                         ))}

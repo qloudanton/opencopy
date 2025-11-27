@@ -52,6 +52,8 @@ MD;
 
     $mockPendingRequest = Mockery::mock(PendingRequest::class);
     $mockPendingRequest->shouldReceive('using')->andReturnSelf();
+    $mockPendingRequest->shouldReceive('withClientOptions')->andReturnSelf();
+    $mockPendingRequest->shouldReceive('withMaxTokens')->andReturnSelf();
     $mockPendingRequest->shouldReceive('withSystemPrompt')->andReturnSelf();
     $mockPendingRequest->shouldReceive('withPrompt')->andReturnSelf();
     $mockPendingRequest->shouldReceive('asText')->andReturn($response);
@@ -167,6 +169,8 @@ it('updates keyword status to generating during generation', function () {
 it('updates keyword status to failed on error', function () {
     $mockPendingRequest = Mockery::mock(PendingRequest::class);
     $mockPendingRequest->shouldReceive('using')->andReturnSelf();
+    $mockPendingRequest->shouldReceive('withClientOptions')->andReturnSelf();
+    $mockPendingRequest->shouldReceive('withMaxTokens')->andReturnSelf();
     $mockPendingRequest->shouldReceive('withSystemPrompt')->andReturnSelf();
     $mockPendingRequest->shouldReceive('withPrompt')->andReturnSelf();
     $mockPendingRequest->shouldReceive('asText')->andThrow(new Exception('API Error'));

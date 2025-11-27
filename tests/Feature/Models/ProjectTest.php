@@ -115,6 +115,50 @@ it('generates slug from title on article creation', function () {
     expect($article->slug)->toBe('my-amazing-article-title');
 });
 
+it('generates unique slug when duplicate exists in same project', function () {
+    $project = Project::factory()->create();
+    $keyword = Keyword::factory()->for($project)->create();
+
+    $article1 = Article::factory()->for($project)->for($keyword)->create([
+        'title' => 'How to Create an Invoice',
+        'slug' => null,
+    ]);
+
+    $article2 = Article::factory()->for($project)->for($keyword)->create([
+        'title' => 'How to Create an Invoice',
+        'slug' => null,
+    ]);
+
+    $article3 = Article::factory()->for($project)->for($keyword)->create([
+        'title' => 'How to Create an Invoice',
+        'slug' => null,
+    ]);
+
+    expect($article1->slug)->toBe('how-to-create-an-invoice');
+    expect($article2->slug)->toBe('how-to-create-an-invoice-1');
+    expect($article3->slug)->toBe('how-to-create-an-invoice-2');
+});
+
+it('allows same slug in different projects', function () {
+    $project1 = Project::factory()->create();
+    $project2 = Project::factory()->create();
+    $keyword1 = Keyword::factory()->for($project1)->create();
+    $keyword2 = Keyword::factory()->for($project2)->create();
+
+    $article1 = Article::factory()->for($project1)->for($keyword1)->create([
+        'title' => 'How to Create an Invoice',
+        'slug' => null,
+    ]);
+
+    $article2 = Article::factory()->for($project2)->for($keyword2)->create([
+        'title' => 'How to Create an Invoice',
+        'slug' => null,
+    ]);
+
+    expect($article1->slug)->toBe('how-to-create-an-invoice');
+    expect($article2->slug)->toBe('how-to-create-an-invoice');
+});
+
 it('can create images for articles', function () {
     $article = Article::factory()->create();
     $featured = Image::factory()->featured()->for($article)->for($article->project)->create();

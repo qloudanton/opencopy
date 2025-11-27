@@ -40,7 +40,13 @@ interface Article {
     } | null;
 }
 
+interface Project {
+    id: number;
+    name: string;
+}
+
 interface Props {
+    project: Project;
     article: Article;
 }
 
@@ -57,20 +63,20 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
     }
 }
 
-export default function Show({ article }: Props) {
+export default function Show({ project, article }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
-        { title: article.project.name, href: `/projects/${article.project.id}` },
+        { title: project.name, href: `/projects/${project.id}` },
         ...(article.keyword ? [
-            { title: 'Keywords', href: `/projects/${article.project.id}/keywords` },
-            { title: article.keyword.keyword, href: `/projects/${article.project.id}/keywords/${article.keyword.id}` },
+            { title: 'Keywords', href: `/projects/${project.id}/keywords` },
+            { title: article.keyword.keyword, href: `/projects/${project.id}/keywords/${article.keyword.id}` },
         ] : []),
-        { title: article.title, href: `/articles/${article.id}` },
+        { title: article.title, href: `/projects/${project.id}/articles/${article.id}` },
     ];
 
     function handleDelete() {
         if (confirm('Are you sure you want to delete this article?')) {
-            router.delete(`/articles/${article.id}`);
+            router.delete(`/projects/${project.id}/articles/${article.id}`);
         }
     }
 
@@ -82,7 +88,7 @@ export default function Show({ article }: Props) {
                     <div className="flex items-center gap-3">
                         {article.keyword && (
                             <Button asChild variant="ghost" size="icon">
-                                <Link href={`/projects/${article.project.id}/keywords/${article.keyword.id}`}>
+                                <Link href={`/projects/${project.id}/keywords/${article.keyword.id}`}>
                                     <ArrowLeft className="h-4 w-4" />
                                 </Link>
                             </Button>
@@ -97,7 +103,7 @@ export default function Show({ article }: Props) {
                     <div className="flex items-center gap-2">
                         <Badge variant={getStatusVariant(article.status)}>{article.status}</Badge>
                         <Button asChild variant="outline">
-                            <Link href={`/articles/${article.id}/edit`}>
+                            <Link href={`/projects/${project.id}/articles/${article.id}/edit`}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
                             </Link>
