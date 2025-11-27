@@ -1,35 +1,93 @@
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useProject } from '@/hooks/use-project';
 import AppLayout from '@/layouts/app-layout';
-import { dashboard } from '@/routes';
-import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/react';
+import { type BreadcrumbItem, type SharedData } from '@/types';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { FolderKanban, Plus } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
         title: 'Dashboard',
-        href: dashboard().url,
+        href: '/dashboard',
     },
 ];
 
 export default function Dashboard() {
+    const { projects } = usePage<SharedData>().props;
+    const { getLastProject } = useProject();
+    const [checked, setChecked] = useState(false);
+
+    // Check for last project and redirect
+    useEffect(() => {
+        const lastProject = getLastProject();
+        if (lastProject) {
+            router.visit(`/projects/${lastProject.id}`);
+        } else {
+            setChecked(true);
+        }
+    }, [getLastProject]);
+
+    // Show loading state while checking for last project
+    if (!checked) {
+        return (
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Dashboard" />
+                <div className="flex h-full flex-1 items-center justify-center">
+                    <div className="animate-pulse text-muted-foreground">Loading...</div>
+                </div>
+            </AppLayout>
+        );
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                    </div>
-                </div>
-                <div className="relative min-h-[100vh] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 md:min-h-min dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
-                </div>
+            <div className="flex h-full flex-1 flex-col items-center justify-center gap-4 p-4">
+                <Card className="w-full max-w-md">
+                    <CardHeader className="text-center">
+                        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                            <FolderKanban className="h-6 w-6 text-primary" />
+                        </div>
+                        <CardTitle>Welcome to OpenCopy</CardTitle>
+                        <CardDescription>
+                            {projects.length === 0
+                                ? 'Create your first project to get started with AI-powered content generation.'
+                                : 'Select a project to continue or create a new one.'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-3">
+                        {projects.length > 0 && (
+                            <div className="space-y-2">
+                                {projects.slice(0, 5).map((project) => (
+                                    <Button
+                                        key={project.id}
+                                        variant="outline"
+                                        className="w-full justify-start"
+                                        asChild
+                                    >
+                                        <Link href={`/projects/${project.id}`}>
+                                            <FolderKanban className="mr-2 h-4 w-4" />
+                                            {project.name}
+                                        </Link>
+                                    </Button>
+                                ))}
+                                {projects.length > 5 && (
+                                    <Button variant="ghost" className="w-full" asChild>
+                                        <Link href="/projects">View all {projects.length} projects</Link>
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                        <Button asChild className={projects.length > 0 ? '' : 'w-full'}>
+                            <Link href="/projects/create">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Create New Project
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
         </AppLayout>
     );

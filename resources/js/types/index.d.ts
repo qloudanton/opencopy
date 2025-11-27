@@ -28,11 +28,19 @@ export interface NavSubItem {
     href: NonNullable<InertiaLinkProps['href']>;
 }
 
+export interface Project {
+    id: number;
+    name: string;
+    domain: string | null;
+}
+
 export interface SharedData {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
     sidebarOpen: boolean;
+    projects: Project[];
+    currentProject: Project | null;
     [key: string]: unknown;
 }
 

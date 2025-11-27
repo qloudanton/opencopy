@@ -1,5 +1,6 @@
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
+import { NavProject } from '@/components/nav-project';
 import { NavUser } from '@/components/nav-user';
 import {
     Sidebar,
@@ -9,67 +10,90 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarSeparator,
 } from '@/components/ui/sidebar';
 import { index as projectsIndex } from '@/actions/App/Http/Controllers/ProjectController';
-import { dashboard } from '@/routes';
-import { type NavItem } from '@/types';
-import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, FolderKanban, LayoutGrid } from 'lucide-react';
+import { type NavItem, type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
+import { BookOpen, FileText, Folder, FolderKanban, Key, LayoutGrid, Link2, Settings } from 'lucide-react';
 import AppLogo from './app-logo';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Projects',
-        href: projectsIndex(),
-        icon: FolderKanban,
-        items: [
-            {
-                title: 'All Projects',
-                href: projectsIndex(),
-            },
-            {
-                title: 'Keywords',
-                href: '/keywords',
-            },
-        ],
-    },
-];
 
 const footerNavItems: NavItem[] = [
     {
         title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
+        href: 'https://github.com/qloudanton/opencopy',
         icon: Folder,
     },
     {
         title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: 'https://opencopy.ai/docs',
         icon: BookOpen,
     },
 ];
 
 export function AppSidebar() {
+    const { currentProject } = usePage<SharedData>().props;
+
+    // Project-scoped navigation items (only shown when a project is selected)
+    const projectNavItems: NavItem[] = currentProject
+        ? [
+              {
+                  title: 'Overview',
+                  href: `/projects/${currentProject.id}`,
+                  icon: LayoutGrid,
+              },
+              {
+                  title: 'Keywords',
+                  href: `/projects/${currentProject.id}/keywords`,
+                  icon: Key,
+              },
+              {
+                  title: 'Articles',
+                  href: `/projects/${currentProject.id}/articles`,
+                  icon: FileText,
+              },
+              {
+                  title: 'Integrations',
+                  href: `/projects/${currentProject.id}/integrations`,
+                  icon: Link2,
+              },
+              {
+                  title: 'Settings',
+                  href: `/projects/${currentProject.id}/settings`,
+                  icon: Settings,
+              },
+          ]
+        : [];
+
+    // Global navigation items (always shown)
+    const globalNavItems: NavItem[] = [
+        {
+            title: 'All Projects',
+            href: projectsIndex(),
+            icon: FolderKanban,
+        },
+    ];
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" asChild>
-                            <Link href={dashboard()} prefetch>
+                            <Link href="/projects" prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+                <NavProject />
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                {currentProject && (
+                    <NavMain items={projectNavItems} label="Project" />
+                )}
+                <NavMain items={globalNavItems} label="Navigation" />
             </SidebarContent>
 
             <SidebarFooter>

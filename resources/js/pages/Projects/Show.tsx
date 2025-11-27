@@ -72,12 +72,14 @@ export default function Show({ project }: Props) {
                             </CardHeader>
                         </Card>
                     </Link>
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardDescription>Articles</CardDescription>
-                            <CardTitle className="text-3xl">{project.articles_count}</CardTitle>
-                        </CardHeader>
-                    </Card>
+                    <Link href={`/projects/${project.id}/articles`}>
+                        <Card className="hover:border-primary transition-colors">
+                            <CardHeader className="pb-2">
+                                <CardDescription>Articles</CardDescription>
+                                <CardTitle className="text-3xl">{project.articles_count}</CardTitle>
+                            </CardHeader>
+                        </Card>
+                    </Link>
                     <Card>
                         <CardHeader className="pb-2">
                             <CardDescription>Integrations</CardDescription>
@@ -131,8 +133,13 @@ export default function Show({ project }: Props) {
                                 <ul className="space-y-2">
                                     {project.articles.map((article) => (
                                         <li key={article.id} className="flex justify-between text-sm">
-                                            <span className="truncate">{article.title}</span>
-                                            <span className="text-muted-foreground">{article.status}</span>
+                                            <Link
+                                                href={`/articles/${article.id}`}
+                                                className="truncate hover:underline"
+                                            >
+                                                {article.title}
+                                            </Link>
+                                            <span className="text-muted-foreground ml-2 shrink-0">{article.status}</span>
                                         </li>
                                     ))}
                                 </ul>

@@ -3,6 +3,7 @@
 use App\Http\Controllers\ArticleController;
 use App\Http\Controllers\KeywordController;
 use App\Http\Controllers\KeywordsController;
+use App\Http\Controllers\ProjectArticleController;
 use App\Http\Controllers\ProjectController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -24,6 +25,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('projects.keywords', KeywordController::class);
     Route::post('projects/{project}/keywords/{keyword}/generate', [KeywordController::class, 'generate'])
         ->name('projects.keywords.generate');
+    Route::get('projects/{project}/articles', [ProjectArticleController::class, 'index'])
+        ->name('projects.articles.index');
 
     Route::get('articles/{article}', [ArticleController::class, 'show'])->name('articles.show');
     Route::get('articles/{article}/edit', [ArticleController::class, 'edit'])->name('articles.edit');

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Project;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -46,6 +47,47 @@ class HandleInertiaRequests extends Middleware
                 'user' => $request->user(),
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'projects' => fn () => $this->getProjects($request),
+            'currentProject' => fn () => $this->getCurrentProject($request),
         ];
+    }
+
+    /**
+     * Get all projects for the authenticated user.
+     *
+     * @return array<int, array{id: int, name: string, domain: string|null}>
+     */
+    protected function getProjects(Request $request): array
+    {
+        if (! $request->user()) {
+            return [];
+        }
+
+        return $request->user()
+            ->projects()
+            ->select('id', 'name', 'domain')
+            ->orderBy('name')
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * Get the current project from the route.
+     *
+     * @return array{id: int, name: string, domain: string|null}|null
+     */
+    protected function getCurrentProject(Request $request): ?array
+    {
+        $project = $request->route('project');
+
+        if ($project instanceof Project) {
+            return [
+                'id' => $project->id,
+                'name' => $project->name,
+                'domain' => $project->domain,
+            ];
+        }
+
+        return null;
     }
 }
