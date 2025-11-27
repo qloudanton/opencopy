@@ -1,9 +1,12 @@
 <?php
 
+use App\Jobs\GenerateArticleJob;
+use App\Models\AiProvider;
 use App\Models\Keyword;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
 
@@ -256,4 +259,84 @@ it('can view all keywords across projects', function () {
             ->component('Keywords/IndexAll')
             ->has('keywords.data', 5)
         );
+});
+
+it('can queue article generation for own keyword', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $project = Project::factory()->for($user)->create();
+    AiProvider::factory()->for($user)->default()->create();
+    $keyword = Keyword::factory()->for($project)->pending()->create();
+
+    $this->actingAs($user)
+        ->post(route('projects.keywords.generate', [$project, $keyword]))
+        ->assertRedirect();
+
+    Queue::assertPushed(GenerateArticleJob::class, function ($job) use ($keyword) {
+        return $job->keyword->id === $keyword->id;
+    });
+
+    expect($keyword->fresh()->status)->toBe('queued');
+});
+
+it('cannot queue generation for another users keyword', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $otherProject = Project::factory()->create();
+    $keyword = Keyword::factory()->for($otherProject)->create();
+
+    $this->actingAs($user)
+        ->post(route('projects.keywords.generate', [$otherProject, $keyword]))
+        ->assertForbidden();
+
+    Queue::assertNothingPushed();
+});
+
+it('cannot queue generation when keyword is already generating', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $project = Project::factory()->for($user)->create();
+    AiProvider::factory()->for($user)->default()->create();
+    $keyword = Keyword::factory()->for($project)->generating()->create();
+
+    $this->actingAs($user)
+        ->post(route('projects.keywords.generate', [$project, $keyword]))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    Queue::assertNothingPushed();
+});
+
+it('cannot queue generation when keyword is queued', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $project = Project::factory()->for($user)->create();
+    AiProvider::factory()->for($user)->default()->create();
+    $keyword = Keyword::factory()->for($project)->queued()->create();
+
+    $this->actingAs($user)
+        ->post(route('projects.keywords.generate', [$project, $keyword]))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    Queue::assertNothingPushed();
+});
+
+it('redirects to ai providers settings when no provider configured', function () {
+    Queue::fake();
+
+    $user = User::factory()->create();
+    $project = Project::factory()->for($user)->create();
+    $keyword = Keyword::factory()->for($project)->create();
+
+    $this->actingAs($user)
+        ->post(route('projects.keywords.generate', [$project, $keyword]))
+        ->assertRedirect(route('ai-providers.index'))
+        ->assertSessionHas('error');
+
+    Queue::assertNothingPushed();
 });

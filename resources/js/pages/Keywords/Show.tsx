@@ -1,9 +1,12 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { generate } from '@/actions/App/Http/Controllers/KeywordController';
+import { Loader2, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 
 interface Article {
     id: number;
@@ -56,12 +59,22 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
 }
 
 export default function Show({ project, keyword }: Props) {
+    const [isGenerating, setIsGenerating] = useState(false);
+    const isProcessing = keyword.status === 'generating' || keyword.status === 'queued';
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
         { title: project.name, href: `/projects/${project.id}` },
         { title: 'Keywords', href: `/projects/${project.id}/keywords` },
         { title: keyword.keyword, href: `/projects/${project.id}/keywords/${keyword.id}` },
     ];
+
+    function handleGenerate() {
+        setIsGenerating(true);
+        router.post(generate.url({ project: project.id, keyword: keyword.id }), {}, {
+            onFinish: () => setIsGenerating(false),
+        });
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -76,8 +89,21 @@ export default function Show({ project, keyword }: Props) {
                         <Button asChild variant="outline">
                             <Link href={`/projects/${project.id}/keywords/${keyword.id}/edit`}>Edit</Link>
                         </Button>
-                        <Button disabled={keyword.status === 'generating' || keyword.status === 'queued'}>
-                            Generate Article
+                        <Button
+                            onClick={handleGenerate}
+                            disabled={isProcessing || isGenerating}
+                        >
+                            {isProcessing || isGenerating ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {keyword.status === 'queued' ? 'Queued' : 'Generating...'}
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    Generate Article
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>
@@ -175,9 +201,14 @@ export default function Show({ project, keyword }: Props) {
                                     </thead>
                                     <tbody>
                                         {keyword.articles.map((article) => (
-                                            <tr key={article.id} className="border-b last:border-0">
+                                            <tr key={article.id} className="border-b last:border-0 hover:bg-muted/30">
                                                 <td className="p-3">
-                                                    <span className="font-medium">{article.title}</span>
+                                                    <Link
+                                                        href={`/articles/${article.id}`}
+                                                        className="font-medium hover:underline"
+                                                    >
+                                                        {article.title}
+                                                    </Link>
                                                 </td>
                                                 <td className="p-3">
                                                     <Badge variant={getStatusVariant(article.status)}>

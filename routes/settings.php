@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\AiProviderController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
@@ -25,4 +26,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('settings/two-factor', [TwoFactorAuthenticationController::class, 'show'])
         ->name('two-factor.show');
+
+    Route::get('settings/ai-providers', [AiProviderController::class, 'index'])->name('ai-providers.index');
+    Route::post('settings/ai-providers', [AiProviderController::class, 'store'])->name('ai-providers.store');
+    Route::put('settings/ai-providers/{aiProvider}', [AiProviderController::class, 'update'])->name('ai-providers.update');
+    Route::delete('settings/ai-providers/{aiProvider}', [AiProviderController::class, 'destroy'])->name('ai-providers.destroy');
+    Route::post('settings/ai-providers/{aiProvider}/default', [AiProviderController::class, 'setDefault'])->name('ai-providers.set-default');
 });

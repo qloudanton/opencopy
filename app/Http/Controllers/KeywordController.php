@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreKeywordRequest;
 use App\Http\Requests\UpdateKeywordRequest;
+use App\Jobs\GenerateArticleJob;
 use App\Models\Keyword;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
@@ -94,5 +95,35 @@ class KeywordController extends Controller
         return redirect()
             ->route('projects.keywords.index', $project)
             ->with('success', 'Keyword deleted successfully.');
+    }
+
+    public function generate(Request $request, Project $project, Keyword $keyword): RedirectResponse
+    {
+        $this->authorize('view', $project);
+
+        if ($keyword->isGenerating()) {
+            return redirect()
+                ->back()
+                ->with('error', 'Article generation is already in progress for this keyword.');
+        }
+
+        $hasProvider = $request->user()
+            ->aiProviders()
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $hasProvider) {
+            return redirect()
+                ->route('ai-providers.index')
+                ->with('error', 'Please configure an AI provider before generating articles.');
+        }
+
+        $keyword->update(['status' => 'queued']);
+
+        GenerateArticleJob::dispatch($keyword);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Article generation has been queued.');
     }
 }

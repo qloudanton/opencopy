@@ -1,9 +1,12 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { generate } from '@/actions/App/Http/Controllers/KeywordController';
+import { Loader2, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 
 interface Keyword {
     id: number;
@@ -51,11 +54,20 @@ function getStatusVariant(status: string): 'default' | 'secondary' | 'destructiv
 }
 
 export default function Index({ project, keywords }: Props) {
+    const [generatingId, setGeneratingId] = useState<number | null>(null);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
         { title: project.name, href: `/projects/${project.id}` },
         { title: 'Keywords', href: `/projects/${project.id}/keywords` },
     ];
+
+    function handleGenerate(keyword: Keyword) {
+        setGeneratingId(keyword.id);
+        router.post(generate.url({ project: project.id, keyword: keyword.id }), {}, {
+            onFinish: () => setGeneratingId(null),
+        });
+    }
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -88,40 +100,59 @@ export default function Index({ project, keywords }: Props) {
                                         <th className="p-3 text-left text-sm font-medium">Status</th>
                                         <th className="p-3 text-left text-sm font-medium">Articles</th>
                                         <th className="p-3 text-left text-sm font-medium">Priority</th>
+                                        <th className="p-3 text-right text-sm font-medium">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {keywords.data.map((keyword) => (
-                                        <tr key={keyword.id} className="border-b last:border-0 hover:bg-muted/30">
-                                            <td className="p-3">
-                                                <Link
-                                                    href={`/projects/${project.id}/keywords/${keyword.id}`}
-                                                    className="font-medium hover:underline"
-                                                >
-                                                    {keyword.keyword}
-                                                </Link>
-                                                {keyword.secondary_keywords && keyword.secondary_keywords.length > 0 && (
-                                                    <p className="text-muted-foreground text-xs mt-1">
-                                                        +{keyword.secondary_keywords.length} secondary
-                                                    </p>
-                                                )}
-                                            </td>
-                                            <td className="p-3 text-sm text-muted-foreground capitalize">
-                                                {keyword.search_intent || '-'}
-                                            </td>
-                                            <td className="p-3">
-                                                <Badge variant={getStatusVariant(keyword.status)}>
-                                                    {keyword.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="p-3 text-sm text-muted-foreground">
-                                                {keyword.articles_count}
-                                            </td>
-                                            <td className="p-3 text-sm text-muted-foreground">
-                                                {keyword.priority}
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {keywords.data.map((keyword) => {
+                                        const isProcessing = keyword.status === 'generating' || keyword.status === 'queued';
+                                        const isThisGenerating = generatingId === keyword.id;
+                                        return (
+                                            <tr key={keyword.id} className="border-b last:border-0 hover:bg-muted/30">
+                                                <td className="p-3">
+                                                    <Link
+                                                        href={`/projects/${project.id}/keywords/${keyword.id}`}
+                                                        className="font-medium hover:underline"
+                                                    >
+                                                        {keyword.keyword}
+                                                    </Link>
+                                                    {keyword.secondary_keywords && keyword.secondary_keywords.length > 0 && (
+                                                        <p className="text-muted-foreground text-xs mt-1">
+                                                            +{keyword.secondary_keywords.length} secondary
+                                                        </p>
+                                                    )}
+                                                </td>
+                                                <td className="p-3 text-sm text-muted-foreground capitalize">
+                                                    {keyword.search_intent || '-'}
+                                                </td>
+                                                <td className="p-3">
+                                                    <Badge variant={getStatusVariant(keyword.status)}>
+                                                        {keyword.status}
+                                                    </Badge>
+                                                </td>
+                                                <td className="p-3 text-sm text-muted-foreground">
+                                                    {keyword.articles_count}
+                                                </td>
+                                                <td className="p-3 text-sm text-muted-foreground">
+                                                    {keyword.priority}
+                                                </td>
+                                                <td className="p-3 text-right">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={() => handleGenerate(keyword)}
+                                                        disabled={isProcessing || isThisGenerating}
+                                                    >
+                                                        {isProcessing || isThisGenerating ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <Sparkles className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>
