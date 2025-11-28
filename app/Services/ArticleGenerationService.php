@@ -18,7 +18,10 @@ class ArticleGenerationService
 
     protected ?string $generatedContent = null;
 
-    public function __construct(protected Prism $prism) {}
+    public function __construct(
+        protected Prism $prism,
+        protected SeoScoreService $seoScoreService
+    ) {}
 
     public function generate(Keyword $keyword, ?AiProvider $aiProvider = null): Article
     {
@@ -39,7 +42,10 @@ class ArticleGenerationService
                 return $article;
             });
 
-            return $article;
+            // Calculate SEO score after article is created
+            $this->seoScoreService->calculateAndSave($article);
+
+            return $article->fresh();
         } catch (\Exception $e) {
             $this->keyword->update([
                 'status' => 'failed',
@@ -133,23 +139,51 @@ You are an expert content strategist and SEO specialist who creates comprehensiv
 4. **Original Insights**: Include perspectives, tips, or connections that aren't obvious from a basic Google search
 5. **Scannable Structure**: Use bullet points, numbered lists, tables, and clear headings so readers can find what they need
 
-## CRITICAL WRITING RULE (ABSOLUTE REQUIREMENT)
-NEVER use em dashes (—) or double hyphens (--) in your writing. This is non-negotiable. Instead:
+## CRITICAL WRITING RULES (ABSOLUTE REQUIREMENTS)
+
+### Rule 1: No Em Dashes
+NEVER use em dashes (—) or double hyphens (--) in your writing. Instead:
 - Use commas, colons, or parentheses for asides
 - Break long sentences into shorter ones
 - Use "which" or "that" clauses
-Em dashes are a telltale sign of AI-generated content and must be avoided completely.
+
+### Rule 2: No Numbered Headings
+NEVER use numbered headings like "1. Topic", "2. Topic", "1.1 Subtopic", "2.1 Subtopic".
+- Use descriptive, topic-specific headings only
+- Good: "## Legal & Tax Requirements" / "### Core Details Every Invoice Needs"
+- Bad: "## 2. Legal & Tax Requirements" / "### 2.1 Core Details Every Invoice Needs"
+Numbered headings make content read like a school textbook or academic paper.
+
+### Rule 3: No Generic Section Names
+NEVER use "Introduction" or "Conclusion" as heading text.
+- Opening section: Use a topic-relevant, engaging heading (e.g., "Why [Topic] Matters" or "The [Topic] Problem")
+- Closing section: Use actionable headings (e.g., "Your Next Steps", "Getting Started", "Putting It Into Practice")
+These generic terms make content feel like a school essay.
 
 ## Article Architecture Requirements
-- **Introduction** (150-200 words): Hook with a pain point or intriguing fact, establish credibility, preview what they'll learn
-- **Main Sections**: Minimum 6-8 H2 sections, each with 2-4 H3 subsections where appropriate
+- **Opening section** (150-200 words): Hook with a pain point or intriguing fact. Use a compelling, topic-specific heading (NOT "Introduction").
+- **Main Sections**: 6-8 H2 sections with descriptive headings, each with 2-4 H3 subsections where appropriate
 - **Each H2 Section**: Minimum 200-300 words with specific details, examples, or steps
-- **Conclusion**: Summarize key takeaways, provide next steps, include a forward-looking statement
+- **Closing section**: Wrap up with next steps and forward-looking guidance. Use an actionable heading (NOT "Conclusion").
 - **FAQ Section**: 4-6 questions that target "People Also Ask" queries related to the topic
 
+## Content Formatting: Tables vs Lists
+Use **tables** when presenting:
+- Structured data with multiple attributes (e.g., requirements with name, description, and status columns)
+- Comparisons between options, features, or alternatives
+- Reference information readers will scan or look up repeatedly
+- Checklists with multiple data points per item
+
+Use **bullet lists** when presenting:
+- Simple sequences of items without multiple attributes
+- Steps in a process (but consider if a table with step/action/notes columns would be clearer)
+- Quick tips or warnings
+
+Example: If listing "invoice requirements" with name, description, and whether each is mandatory, use a TABLE, not a numbered list.
+
 ## Content Enrichment (Include Where Relevant)
-- Statistics with context (don't just cite numbers - explain what they mean)
-- Step-by-step instructions with clear numbering
+- Statistics with context (explain what the numbers mean)
+- Step-by-step instructions
 - Real-world examples or case studies
 - Comparison tables for features, options, or alternatives
 - Pro tips, warnings, or common mistakes to avoid
@@ -211,14 +245,23 @@ PROMPT;
         // Search intent with specific guidance
         $prompt .= $this->buildSearchIntentInstructions($keyword->search_intent);
 
-        // Word count with strict enforcement
+        // Word count with target range (not just minimum)
         $wordCount = $keyword->target_word_count ?? $project->default_word_count ?? 1500;
+        $minWords = (int) round($wordCount * 0.9);
+        $maxWords = (int) round($wordCount * 1.15);
         $prompt .= "## Word Count Requirement\n";
-        $prompt .= "**MINIMUM {$wordCount} words** - This is a hard requirement, not a suggestion.\n";
-        $prompt .= "- Introduction: 150-200 words\n";
-        $prompt .= "- Each main section (H2): 200-400 words\n";
-        $prompt .= "- FAQ section: 300-500 words total\n";
-        $prompt .= "- Conclusion: 100-150 words\n\n";
+        $prompt .= "**TARGET: {$minWords}-{$maxWords} words** (aiming for ~{$wordCount})\n\n";
+        $prompt .= "IMPORTANT: Write exactly as much as needed to cover the topic thoroughly - no more, no less.\n";
+        $prompt .= "- Do NOT pad content to hit word counts\n";
+        $prompt .= "- Do NOT repeat information in different words\n";
+        $prompt .= "- Every sentence must add unique value\n";
+        $prompt .= "- If the topic is fully covered in fewer words, that's fine\n";
+        $prompt .= "- Exceeding {$maxWords} words likely means you're adding filler\n\n";
+        $prompt .= "Suggested structure:\n";
+        $prompt .= "- Introduction: 100-150 words (get to the point quickly)\n";
+        $prompt .= "- Each main section (H2): 150-300 words of substantive content\n";
+        $prompt .= "- FAQ section: 200-400 words total\n";
+        $prompt .= "- Conclusion: 75-100 words\n\n";
 
         $tone = $keyword->tone ?? $project->default_tone ?? 'professional';
         $prompt .= "**Writing Tone:** {$tone}\n\n";
@@ -245,12 +288,13 @@ PROMPT;
 
         // Final quality reminder
         $prompt .= "## Final Checklist (Verify Before Submitting)\n";
-        $prompt .= "- [ ] Article meets or exceeds {$wordCount} words\n";
-        $prompt .= "- [ ] Minimum 6 H2 sections with substantive content\n";
+        $prompt .= "- [ ] Article is {$minWords}-{$maxWords} words (not significantly over or under)\n";
+        $prompt .= "- [ ] At least 4-6 H2 sections with substantive content\n";
         $prompt .= "- [ ] Each section provides specific, actionable information\n";
-        $prompt .= "- [ ] Includes real examples, statistics, or case studies\n";
-        $prompt .= "- [ ] FAQ section with 4-6 relevant questions\n";
-        $prompt .= "- [ ] No generic filler content - every paragraph adds value\n";
+        $prompt .= "- [ ] Includes real examples, statistics, or data where relevant\n";
+        $prompt .= "- [ ] FAQ section with 3-5 relevant questions\n";
+        $prompt .= "- [ ] No filler, fluff, or repetition - every sentence earns its place\n";
+        $prompt .= "- [ ] A reader would feel satisfied, not overwhelmed\n";
 
         return $prompt;
     }

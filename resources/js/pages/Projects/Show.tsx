@@ -1,9 +1,14 @@
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-
 
 interface Keyword {
     id: number;
@@ -51,7 +56,9 @@ export default function Show({ project }: Props) {
                     <div>
                         <h1 className="text-2xl font-bold">{project.name}</h1>
                         {project.domain && (
-                            <p className="text-muted-foreground">{project.domain}</p>
+                            <p className="text-muted-foreground">
+                                {project.domain}
+                            </p>
                         )}
                     </div>
                     <Button asChild variant="outline">
@@ -60,30 +67,38 @@ export default function Show({ project }: Props) {
                 </div>
 
                 {project.description && (
-                    <p className="text-muted-foreground">{project.description}</p>
+                    <p className="text-muted-foreground">
+                        {project.description}
+                    </p>
                 )}
 
                 <div className="grid gap-4 md:grid-cols-3">
                     <Link href={`/projects/${project.id}/keywords`}>
-                        <Card className="hover:border-primary transition-colors">
+                        <Card className="transition-colors hover:border-primary">
                             <CardHeader className="pb-2">
                                 <CardDescription>Keywords</CardDescription>
-                                <CardTitle className="text-3xl">{project.keywords_count}</CardTitle>
+                                <CardTitle className="text-3xl">
+                                    {project.keywords_count}
+                                </CardTitle>
                             </CardHeader>
                         </Card>
                     </Link>
                     <Link href={`/projects/${project.id}/articles`}>
-                        <Card className="hover:border-primary transition-colors">
+                        <Card className="transition-colors hover:border-primary">
                             <CardHeader className="pb-2">
                                 <CardDescription>Articles</CardDescription>
-                                <CardTitle className="text-3xl">{project.articles_count}</CardTitle>
+                                <CardTitle className="text-3xl">
+                                    {project.articles_count}
+                                </CardTitle>
                             </CardHeader>
                         </Card>
                     </Link>
                     <Card>
                         <CardHeader className="pb-2">
                             <CardDescription>Integrations</CardDescription>
-                            <CardTitle className="text-3xl">{project.integrations_count}</CardTitle>
+                            <CardTitle className="text-3xl">
+                                {project.integrations_count}
+                            </CardTitle>
                         </CardHeader>
                     </Card>
                 </div>
@@ -93,28 +108,41 @@ export default function Show({ project }: Props) {
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Recent Keywords</CardTitle>
                             <Button asChild variant="ghost" size="sm">
-                                <Link href={`/projects/${project.id}/keywords`}>View all</Link>
+                                <Link href={`/projects/${project.id}/keywords`}>
+                                    View all
+                                </Link>
                             </Button>
                         </CardHeader>
                         <CardContent>
                             {project.keywords.length === 0 ? (
-                                <div className="text-center py-4">
-                                    <p className="text-muted-foreground text-sm mb-2">No keywords yet</p>
+                                <div className="py-4 text-center">
+                                    <p className="mb-2 text-sm text-muted-foreground">
+                                        No keywords yet
+                                    </p>
                                     <Button asChild size="sm">
-                                        <Link href={`/projects/${project.id}/keywords/create`}>Add keyword</Link>
+                                        <Link
+                                            href={`/projects/${project.id}/keywords/create`}
+                                        >
+                                            Add keyword
+                                        </Link>
                                     </Button>
                                 </div>
                             ) : (
                                 <ul className="space-y-2">
                                     {project.keywords.map((keyword) => (
-                                        <li key={keyword.id} className="flex justify-between text-sm">
+                                        <li
+                                            key={keyword.id}
+                                            className="flex justify-between text-sm"
+                                        >
                                             <Link
                                                 href={`/projects/${project.id}/keywords/${keyword.id}`}
                                                 className="hover:underline"
                                             >
                                                 {keyword.keyword}
                                             </Link>
-                                            <span className="text-muted-foreground">{keyword.status}</span>
+                                            <span className="text-muted-foreground">
+                                                {keyword.status}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
@@ -128,18 +156,25 @@ export default function Show({ project }: Props) {
                         </CardHeader>
                         <CardContent>
                             {project.articles.length === 0 ? (
-                                <p className="text-muted-foreground text-sm">No articles yet</p>
+                                <p className="text-sm text-muted-foreground">
+                                    No articles yet
+                                </p>
                             ) : (
                                 <ul className="space-y-2">
                                     {project.articles.map((article) => (
-                                        <li key={article.id} className="flex justify-between text-sm">
+                                        <li
+                                            key={article.id}
+                                            className="flex justify-between text-sm"
+                                        >
                                             <Link
                                                 href={`/articles/${article.id}`}
                                                 className="truncate hover:underline"
                                             >
                                                 {article.title}
                                             </Link>
-                                            <span className="text-muted-foreground ml-2 shrink-0">{article.status}</span>
+                                            <span className="ml-2 shrink-0 text-muted-foreground">
+                                                {article.status}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>

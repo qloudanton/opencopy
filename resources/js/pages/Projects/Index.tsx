@@ -1,8 +1,14 @@
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface Project {
     id: number;
@@ -41,27 +47,42 @@ export default function Index({ projects }: Props) {
                 {projects.length === 0 ? (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12">
-                            <p className="text-muted-foreground mb-4">No projects yet</p>
+                            <p className="mb-4 text-muted-foreground">
+                                No projects yet
+                            </p>
                             <Button asChild>
-                                <Link href="/projects/create">Create your first project</Link>
+                                <Link href="/projects/create">
+                                    Create your first project
+                                </Link>
                             </Button>
                         </CardContent>
                     </Card>
                 ) : (
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                         {projects.map((project) => (
-                            <Link key={project.id} href={`/projects/${project.id}`}>
-                                <Card className="hover:border-primary transition-colors">
+                            <Link
+                                key={project.id}
+                                href={`/projects/${project.id}`}
+                            >
+                                <Card className="transition-colors hover:border-primary">
                                     <CardHeader>
                                         <CardTitle>{project.name}</CardTitle>
                                         {project.domain && (
-                                            <CardDescription>{project.domain}</CardDescription>
+                                            <CardDescription>
+                                                {project.domain}
+                                            </CardDescription>
                                         )}
                                     </CardHeader>
                                     <CardContent>
                                         <div className="flex gap-4 text-sm text-muted-foreground">
-                                            <span>{project.keywords_count} keywords</span>
-                                            <span>{project.articles_count} articles</span>
+                                            <span>
+                                                {project.keywords_count}{' '}
+                                                keywords
+                                            </span>
+                                            <span>
+                                                {project.articles_count}{' '}
+                                                articles
+                                            </span>
                                         </div>
                                     </CardContent>
                                 </Card>

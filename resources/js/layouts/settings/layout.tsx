@@ -1,8 +1,8 @@
+import { index as aiProvidersIndex } from '@/actions/App/Http/Controllers/Settings/AiProviderController';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { cn, isSameUrl, resolveUrl } from '@/lib/utils';
-import { index as aiProvidersIndex } from '@/actions/App/Http/Controllers/Settings/AiProviderController';
 import { edit as editAppearance } from '@/routes/appearance';
 import { edit } from '@/routes/profile';
 import { show } from '@/routes/two-factor';

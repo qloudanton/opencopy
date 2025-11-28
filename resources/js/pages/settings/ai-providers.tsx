@@ -1,12 +1,18 @@
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, router } from '@inertiajs/react';
+import { Head, router, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -15,6 +21,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,12 +40,6 @@ import { Switch } from '@/components/ui/switch';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { MoreHorizontal, Plus, Star, Trash2 } from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface AiProvider {
     id: number;
@@ -70,7 +76,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function AiProviders({ providers, availableProviders }: Props) {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingProvider, setEditingProvider] = useState<AiProvider | null>(null);
+    const [editingProvider, setEditingProvider] = useState<AiProvider | null>(
+        null,
+    );
 
     const { data, setData, post, put, processing, errors, reset } = useForm({
         provider: '',
@@ -82,7 +90,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
         is_active: true,
     });
 
-    const selectedProviderConfig = availableProviders.find(p => p.value === data.provider);
+    const selectedProviderConfig = availableProviders.find(
+        (p) => p.value === data.provider,
+    );
 
     function openAddDialog() {
         reset();
@@ -135,7 +145,7 @@ export default function AiProviders({ providers, availableProviders }: Props) {
     }
 
     function handleProviderChange(value: string) {
-        const config = availableProviders.find(p => p.value === value);
+        const config = availableProviders.find((p) => p.value === value);
         setData({
             ...data,
             provider: value,
@@ -165,7 +175,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                     {providers.length === 0 ? (
                         <Card>
                             <CardContent className="flex flex-col items-center justify-center py-12">
-                                <p className="text-muted-foreground mb-4">No AI providers configured yet</p>
+                                <p className="mb-4 text-muted-foreground">
+                                    No AI providers configured yet
+                                </p>
                                 <Button onClick={openAddDialog}>
                                     <Plus className="mr-2 h-4 w-4" />
                                     Add your first provider
@@ -179,7 +191,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                     <CardHeader className="pb-3">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <CardTitle className="text-base">{provider.name}</CardTitle>
+                                                <CardTitle className="text-base">
+                                                    {provider.name}
+                                                </CardTitle>
                                                 {provider.is_default && (
                                                     <Badge variant="secondary">
                                                         <Star className="mr-1 h-3 w-3" />
@@ -187,26 +201,47 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                                     </Badge>
                                                 )}
                                                 {!provider.is_active && (
-                                                    <Badge variant="outline">Disabled</Badge>
+                                                    <Badge variant="outline">
+                                                        Disabled
+                                                    </Badge>
                                                 )}
                                             </div>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="icon">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                    >
                                                         <MoreHorizontal className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => openEditDialog(provider)}>
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            openEditDialog(
+                                                                provider,
+                                                            )
+                                                        }
+                                                    >
                                                         Edit
                                                     </DropdownMenuItem>
                                                     {!provider.is_default && (
-                                                        <DropdownMenuItem onClick={() => handleSetDefault(provider)}>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                handleSetDefault(
+                                                                    provider,
+                                                                )
+                                                            }
+                                                        >
                                                             Set as default
                                                         </DropdownMenuItem>
                                                     )}
                                                     <DropdownMenuItem
-                                                        onClick={() => handleDelete(provider)}
+                                                        onClick={() =>
+                                                            handleDelete(
+                                                                provider,
+                                                            )
+                                                        }
                                                         className="text-destructive"
                                                     >
                                                         <Trash2 className="mr-2 h-4 w-4" />
@@ -216,14 +251,19 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                             </DropdownMenu>
                                         </div>
                                         <CardDescription>
-                                            {provider.provider} / {provider.model}
-                                            {provider.api_endpoint && ` / ${provider.api_endpoint}`}
+                                            {provider.provider} /{' '}
+                                            {provider.model}
+                                            {provider.api_endpoint &&
+                                                ` / ${provider.api_endpoint}`}
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="pt-0">
                                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                             <span>
-                                                API Key: {provider.has_api_key ? 'Configured' : 'Not set'}
+                                                API Key:{' '}
+                                                {provider.has_api_key
+                                                    ? 'Configured'
+                                                    : 'Not set'}
                                             </span>
                                         </div>
                                     </CardContent>
@@ -237,7 +277,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                     <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
                             <DialogTitle>
-                                {editingProvider ? 'Edit AI Provider' : 'Add AI Provider'}
+                                {editingProvider
+                                    ? 'Edit AI Provider'
+                                    : 'Add AI Provider'}
                             </DialogTitle>
                             <DialogDescription>
                                 {editingProvider
@@ -259,7 +301,10 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {availableProviders.map((p) => (
-                                            <SelectItem key={p.value} value={p.value}>
+                                            <SelectItem
+                                                key={p.value}
+                                                value={p.value}
+                                            >
                                                 {p.label}
                                             </SelectItem>
                                         ))}
@@ -273,7 +318,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                 <Input
                                     id="name"
                                     value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('name', e.target.value)
+                                    }
                                     placeholder="My OpenAI"
                                 />
                                 <InputError message={errors.name} />
@@ -283,17 +330,24 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                 <Label htmlFor="model">Model</Label>
                                 <Select
                                     value={data.model}
-                                    onValueChange={(value) => setData('model', value)}
+                                    onValueChange={(value) =>
+                                        setData('model', value)
+                                    }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a model" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {selectedProviderConfig?.models.map((model) => (
-                                            <SelectItem key={model} value={model}>
-                                                {model}
-                                            </SelectItem>
-                                        ))}
+                                        {selectedProviderConfig?.models.map(
+                                            (model) => (
+                                                <SelectItem
+                                                    key={model}
+                                                    value={model}
+                                                >
+                                                    {model}
+                                                </SelectItem>
+                                            ),
+                                        )}
                                     </SelectContent>
                                 </Select>
                                 <InputError message={errors.model} />
@@ -313,8 +367,14 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                         id="api_key"
                                         type="password"
                                         value={data.api_key}
-                                        onChange={(e) => setData('api_key', e.target.value)}
-                                        placeholder={editingProvider ? '••••••••' : 'sk-...'}
+                                        onChange={(e) =>
+                                            setData('api_key', e.target.value)
+                                        }
+                                        placeholder={
+                                            editingProvider
+                                                ? '••••••••'
+                                                : 'sk-...'
+                                        }
                                     />
                                     <InputError message={errors.api_key} />
                                 </div>
@@ -324,13 +384,23 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                 <div className="space-y-2">
                                     <Label htmlFor="api_endpoint">
                                         API Endpoint
-                                        <span className="ml-2 text-xs text-muted-foreground">(optional)</span>
+                                        <span className="ml-2 text-xs text-muted-foreground">
+                                            (optional)
+                                        </span>
                                     </Label>
                                     <Input
                                         id="api_endpoint"
                                         value={data.api_endpoint}
-                                        onChange={(e) => setData('api_endpoint', e.target.value)}
-                                        placeholder={selectedProviderConfig.defaultEndpoint || 'https://api.example.com'}
+                                        onChange={(e) =>
+                                            setData(
+                                                'api_endpoint',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder={
+                                            selectedProviderConfig.defaultEndpoint ||
+                                            'https://api.example.com'
+                                        }
                                     />
                                     <InputError message={errors.api_endpoint} />
                                 </div>
@@ -341,7 +411,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                     <Switch
                                         id="is_active"
                                         checked={data.is_active}
-                                        onCheckedChange={(checked) => setData('is_active', checked)}
+                                        onCheckedChange={(checked) =>
+                                            setData('is_active', checked)
+                                        }
                                     />
                                     <Label htmlFor="is_active">Active</Label>
                                 </div>
@@ -350,9 +422,13 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                     <Switch
                                         id="is_default"
                                         checked={data.is_default}
-                                        onCheckedChange={(checked) => setData('is_default', checked)}
+                                        onCheckedChange={(checked) =>
+                                            setData('is_default', checked)
+                                        }
                                     />
-                                    <Label htmlFor="is_default">Set as default</Label>
+                                    <Label htmlFor="is_default">
+                                        Set as default
+                                    </Label>
                                 </div>
                             </div>
 
@@ -365,7 +441,9 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                     Cancel
                                 </Button>
                                 <Button type="submit" disabled={processing}>
-                                    {editingProvider ? 'Update' : 'Add Provider'}
+                                    {editingProvider
+                                        ? 'Update'
+                                        : 'Add Provider'}
                                 </Button>
                             </DialogFooter>
                         </form>

@@ -1,11 +1,17 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, router } from '@inertiajs/react';
+import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import InputError from '@/components/input-error';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router, useForm } from '@inertiajs/react';
 
 interface Project {
     id: number;
@@ -38,7 +44,11 @@ export default function Edit({ project }: Props) {
     }
 
     function handleDelete() {
-        if (confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
+        if (
+            confirm(
+                'Are you sure you want to delete this project? This action cannot be undone.',
+            )
+        ) {
             router.delete(`/projects/${project.id}`);
         }
     }
@@ -63,29 +73,39 @@ export default function Edit({ project }: Props) {
                                 <Input
                                     id="name"
                                     value={data.name}
-                                    onChange={(e) => setData('name', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('name', e.target.value)
+                                    }
                                     placeholder="My Tech Blog"
                                 />
                                 <InputError message={errors.name} />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="domain">Domain (optional)</Label>
+                                <Label htmlFor="domain">
+                                    Domain (optional)
+                                </Label>
                                 <Input
                                     id="domain"
                                     value={data.domain}
-                                    onChange={(e) => setData('domain', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('domain', e.target.value)
+                                    }
                                     placeholder="myblog.com"
                                 />
                                 <InputError message={errors.domain} />
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="description">Description (optional)</Label>
+                                <Label htmlFor="description">
+                                    Description (optional)
+                                </Label>
                                 <Input
                                     id="description"
                                     value={data.description}
-                                    onChange={(e) => setData('description', e.target.value)}
+                                    onChange={(e) =>
+                                        setData('description', e.target.value)
+                                    }
                                     placeholder="A brief description of this project"
                                 />
                                 <InputError message={errors.description} />
@@ -102,7 +122,9 @@ export default function Edit({ project }: Props) {
 
                 <Card className="max-w-2xl border-destructive">
                     <CardHeader>
-                        <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                        <CardTitle className="text-destructive">
+                            Danger Zone
+                        </CardTitle>
                         <CardDescription>
                             Permanently delete this project and all its data.
                         </CardDescription>

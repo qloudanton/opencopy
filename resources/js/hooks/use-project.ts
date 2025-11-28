@@ -1,6 +1,6 @@
 import { type Project, type SharedData } from '@/types';
-import { usePage, router } from '@inertiajs/react';
-import { useEffect, useCallback } from 'react';
+import { router, usePage } from '@inertiajs/react';
+import { useCallback, useEffect } from 'react';
 
 const LAST_PROJECT_KEY = 'opencopy_last_project_id';
 

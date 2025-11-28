@@ -1,5 +1,11 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { useProject } from '@/hooks/use-project';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
@@ -35,7 +41,9 @@ export default function Dashboard() {
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Dashboard" />
                 <div className="flex h-full flex-1 items-center justify-center">
-                    <div className="animate-pulse text-muted-foreground">Loading...</div>
+                    <div className="animate-pulse text-muted-foreground">
+                        Loading...
+                    </div>
                 </div>
             </AppLayout>
         );
@@ -74,13 +82,22 @@ export default function Dashboard() {
                                     </Button>
                                 ))}
                                 {projects.length > 5 && (
-                                    <Button variant="ghost" className="w-full" asChild>
-                                        <Link href="/projects">View all {projects.length} projects</Link>
+                                    <Button
+                                        variant="ghost"
+                                        className="w-full"
+                                        asChild
+                                    >
+                                        <Link href="/projects">
+                                            View all {projects.length} projects
+                                        </Link>
                                     </Button>
                                 )}
                             </div>
                         )}
-                        <Button asChild className={projects.length > 0 ? '' : 'w-full'}>
+                        <Button
+                            asChild
+                            className={projects.length > 0 ? '' : 'w-full'}
+                        >
                             <Link href="/projects/create">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Create New Project

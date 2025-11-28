@@ -1,10 +1,42 @@
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Clock, FileText } from 'lucide-react';
+
+// Mini SEO score component for table display
+function SeoScoreBadge({ score }: { score: number | null }) {
+    if (score === null) {
+        return <span className="text-sm text-muted-foreground">-</span>;
+    }
+
+    const getScoreColor = (s: number) => {
+        if (s >= 80) return { bg: 'bg-green-500', text: 'text-green-700', label: 'Excellent' };
+        if (s >= 60) return { bg: 'bg-lime-500', text: 'text-lime-700', label: 'Good' };
+        if (s >= 40) return { bg: 'bg-orange-500', text: 'text-orange-700', label: 'Needs Work' };
+        return { bg: 'bg-red-500', text: 'text-red-700', label: 'Poor' };
+    };
+
+    const { bg, text, label } = getScoreColor(score);
+    const percentage = Math.min(100, Math.max(0, score));
+
+    return (
+        <div className="flex items-center gap-2">
+            <div className="relative h-2 w-16 overflow-hidden rounded-full bg-muted">
+                <div
+                    className={cn('h-full rounded-full transition-all', bg)}
+                    style={{ width: `${percentage}%` }}
+                />
+            </div>
+            <span className={cn('text-sm font-medium tabular-nums', text)}>
+                {score}
+            </span>
+        </div>
+    );
+}
 
 interface Keyword {
     id: number;
@@ -43,7 +75,9 @@ interface Props {
     articles: PaginatedArticles;
 }
 
-function getStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+function getStatusVariant(
+    status: string,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
     switch (status) {
         case 'published':
             return 'default';
@@ -70,19 +104,25 @@ export default function Index({ project, articles }: Props) {
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold">Articles</h1>
                     <Button asChild variant="outline">
-                        <Link href={`/projects/${project.id}/keywords`}>Manage Keywords</Link>
+                        <Link href={`/projects/${project.id}/keywords`}>
+                            Manage Keywords
+                        </Link>
                     </Button>
                 </div>
 
                 {articles.data.length === 0 ? (
                     <Card>
                         <CardContent className="flex flex-col items-center justify-center py-12">
-                            <p className="text-muted-foreground mb-4">No articles yet</p>
-                            <p className="text-muted-foreground text-sm mb-4">
+                            <p className="mb-4 text-muted-foreground">
+                                No articles yet
+                            </p>
+                            <p className="mb-4 text-sm text-muted-foreground">
                                 Generate articles from your keywords
                             </p>
                             <Button asChild>
-                                <Link href={`/projects/${project.id}/keywords`}>Go to Keywords</Link>
+                                <Link href={`/projects/${project.id}/keywords`}>
+                                    Go to Keywords
+                                </Link>
                             </Button>
                         </CardContent>
                     </Card>
@@ -92,17 +132,35 @@ export default function Index({ project, articles }: Props) {
                             <table className="w-full">
                                 <thead>
                                     <tr className="border-b bg-muted/50">
-                                        <th className="p-3 text-left text-sm font-medium">Title</th>
-                                        <th className="p-3 text-left text-sm font-medium">Keyword</th>
-                                        <th className="p-3 text-left text-sm font-medium">Status</th>
-                                        <th className="p-3 text-left text-sm font-medium">Words</th>
-                                        <th className="p-3 text-left text-sm font-medium">Read Time</th>
-                                        <th className="p-3 text-left text-sm font-medium">Created</th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            Title
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            Keyword
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            Status
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            SEO Score
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            Words
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            Read Time
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
+                                            Created
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {articles.data.map((article) => (
-                                        <tr key={article.id} className="border-b last:border-0 hover:bg-muted/30">
+                                        <tr
+                                            key={article.id}
+                                            className="border-b last:border-0 hover:bg-muted/30"
+                                        >
                                             <td className="p-3">
                                                 <Link
                                                     href={`/projects/${project.id}/articles/${article.id}`}
@@ -117,31 +175,48 @@ export default function Index({ project, articles }: Props) {
                                                         href={`/projects/${project.id}/keywords/${article.keyword.id}`}
                                                         className="hover:underline"
                                                     >
-                                                        {article.keyword.keyword}
+                                                        {
+                                                            article.keyword
+                                                                .keyword
+                                                        }
                                                     </Link>
                                                 ) : (
                                                     '-'
                                                 )}
                                             </td>
                                             <td className="p-3">
-                                                <Badge variant={getStatusVariant(article.status)}>
+                                                <Badge
+                                                    variant={getStatusVariant(
+                                                        article.status,
+                                                    )}
+                                                >
                                                     {article.status}
                                                 </Badge>
+                                            </td>
+                                            <td className="p-3">
+                                                <SeoScoreBadge
+                                                    score={article.seo_score}
+                                                />
                                             </td>
                                             <td className="p-3 text-sm text-muted-foreground">
                                                 <span className="flex items-center gap-1">
                                                     <FileText className="h-3 w-3" />
-                                                    {article.word_count?.toLocaleString() || 0}
+                                                    {article.word_count?.toLocaleString() ||
+                                                        0}
                                                 </span>
                                             </td>
                                             <td className="p-3 text-sm text-muted-foreground">
                                                 <span className="flex items-center gap-1">
                                                     <Clock className="h-3 w-3" />
-                                                    {article.reading_time_minutes || 1} min
+                                                    {article.reading_time_minutes ||
+                                                        1}{' '}
+                                                    min
                                                 </span>
                                             </td>
                                             <td className="p-3 text-sm text-muted-foreground">
-                                                {new Date(article.created_at).toLocaleString(undefined, {
+                                                {new Date(
+                                                    article.created_at,
+                                                ).toLocaleString(undefined, {
                                                     dateStyle: 'medium',
                                                     timeStyle: 'short',
                                                 })}
@@ -156,15 +231,20 @@ export default function Index({ project, articles }: Props) {
                             <div className="flex justify-center gap-2">
                                 {articles.prev_page_url && (
                                     <Button asChild variant="outline" size="sm">
-                                        <Link href={articles.prev_page_url}>Previous</Link>
+                                        <Link href={articles.prev_page_url}>
+                                            Previous
+                                        </Link>
                                     </Button>
                                 )}
                                 <span className="flex items-center px-3 text-sm text-muted-foreground">
-                                    Page {articles.current_page} of {articles.last_page}
+                                    Page {articles.current_page} of{' '}
+                                    {articles.last_page}
                                 </span>
                                 {articles.next_page_url && (
                                     <Button asChild variant="outline" size="sm">
-                                        <Link href={articles.next_page_url}>Next</Link>
+                                        <Link href={articles.next_page_url}>
+                                            Next
+                                        </Link>
                                     </Button>
                                 )}
                             </div>

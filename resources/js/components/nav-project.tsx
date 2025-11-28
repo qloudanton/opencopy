@@ -13,7 +13,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { type Project, type SharedData } from '@/types';
+import { type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { Check, ChevronsUpDown, FolderKanban, Plus } from 'lucide-react';
 import { useEffect } from 'react';
@@ -41,7 +41,7 @@ export function NavProject() {
                             size="lg"
                             className="group data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
-                            <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                                 <FolderKanban className="size-4" />
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight">
@@ -65,7 +65,13 @@ export function NavProject() {
                     <DropdownMenuContent
                         className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
                         align="start"
-                        side={isMobile ? 'bottom' : state === 'collapsed' ? 'right' : 'bottom'}
+                        side={
+                            isMobile
+                                ? 'bottom'
+                                : state === 'collapsed'
+                                  ? 'right'
+                                  : 'bottom'
+                        }
                         sideOffset={4}
                     >
                         <DropdownMenuLabel className="text-xs text-muted-foreground">
@@ -80,12 +86,14 @@ export function NavProject() {
                                 <DropdownMenuItem key={project.id} asChild>
                                     <Link
                                         href={`/projects/${project.id}`}
-                                        className="flex items-center gap-2 cursor-pointer"
+                                        className="flex cursor-pointer items-center gap-2"
                                     >
                                         <div className="flex size-6 items-center justify-center rounded-sm border">
                                             <FolderKanban className="size-3.5 shrink-0" />
                                         </div>
-                                        <span className="flex-1 truncate">{project.name}</span>
+                                        <span className="flex-1 truncate">
+                                            {project.name}
+                                        </span>
                                         {currentProject?.id === project.id && (
                                             <Check className="size-4 text-primary" />
                                         )}
@@ -97,12 +105,14 @@ export function NavProject() {
                         <DropdownMenuItem asChild>
                             <Link
                                 href="/projects/create"
-                                className="flex items-center gap-2 cursor-pointer"
+                                className="flex cursor-pointer items-center gap-2"
                             >
                                 <div className="flex size-6 items-center justify-center rounded-sm border border-dashed">
                                     <Plus className="size-3.5" />
                                 </div>
-                                <span className="text-muted-foreground">Create new project</span>
+                                <span className="text-muted-foreground">
+                                    Create new project
+                                </span>
                             </Link>
                         </DropdownMenuItem>
                     </DropdownMenuContent>

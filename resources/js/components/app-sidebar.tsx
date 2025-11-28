@@ -1,3 +1,4 @@
+import { index as projectsIndex } from '@/actions/App/Http/Controllers/ProjectController';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavProject } from '@/components/nav-project';
@@ -10,12 +11,19 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
-    SidebarSeparator,
 } from '@/components/ui/sidebar';
-import { index as projectsIndex } from '@/actions/App/Http/Controllers/ProjectController';
 import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, FileText, Folder, FolderKanban, Key, LayoutGrid, Link2, Settings } from 'lucide-react';
+import {
+    BookOpen,
+    FileText,
+    Folder,
+    FolderKanban,
+    Key,
+    LayoutGrid,
+    Link2,
+    Settings,
+} from 'lucide-react';
 import AppLogo from './app-logo';
 
 const footerNavItems: NavItem[] = [

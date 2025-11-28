@@ -1,19 +1,3 @@
-import AppLayout from '@/layouts/app-layout';
-import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, router } from '@inertiajs/react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import InputError from '@/components/input-error';
 import {
     AlertDialog,
@@ -26,6 +10,28 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import AppLayout from '@/layouts/app-layout';
+import { type BreadcrumbItem } from '@/types';
+import { Head, router, useForm } from '@inertiajs/react';
 import { Trash2 } from 'lucide-react';
 
 interface AiProvider {
@@ -64,12 +70,32 @@ interface Props {
 }
 
 const toneOptions = [
-    { value: 'professional', label: 'Professional', description: 'Formal, business-appropriate' },
-    { value: 'casual', label: 'Casual', description: 'Relaxed, conversational' },
+    {
+        value: 'professional',
+        label: 'Professional',
+        description: 'Formal, business-appropriate',
+    },
+    {
+        value: 'casual',
+        label: 'Casual',
+        description: 'Relaxed, conversational',
+    },
     { value: 'friendly', label: 'Friendly', description: 'Warm, approachable' },
-    { value: 'technical', label: 'Technical', description: 'Precise, detailed' },
-    { value: 'authoritative', label: 'Authoritative', description: 'Expert, confident' },
-    { value: 'conversational', label: 'Conversational', description: 'Like talking to a friend' },
+    {
+        value: 'technical',
+        label: 'Technical',
+        description: 'Precise, detailed',
+    },
+    {
+        value: 'authoritative',
+        label: 'Authoritative',
+        description: 'Expert, confident',
+    },
+    {
+        value: 'conversational',
+        label: 'Conversational',
+        description: 'Like talking to a friend',
+    },
 ];
 
 const languageOptions = [
@@ -104,11 +130,27 @@ const regionOptions = [
 ];
 
 const imageStyleOptions = [
-    { value: 'illustration', label: 'Illustration', description: 'Clean, modern illustrations' },
+    {
+        value: 'illustration',
+        label: 'Illustration',
+        description: 'Clean, modern illustrations',
+    },
     { value: 'sketch', label: 'Sketch', description: 'Hand-drawn style' },
-    { value: 'watercolor', label: 'Watercolor', description: 'Artistic watercolor effect' },
-    { value: 'cinematic', label: 'Cinematic', description: 'Dramatic, movie-like visuals' },
-    { value: 'brand-text', label: 'Brand Text', description: 'Title overlaid on brand color' },
+    {
+        value: 'watercolor',
+        label: 'Watercolor',
+        description: 'Artistic watercolor effect',
+    },
+    {
+        value: 'cinematic',
+        label: 'Cinematic',
+        description: 'Dramatic, movie-like visuals',
+    },
+    {
+        value: 'brand-text',
+        label: 'Brand Text',
+        description: 'Title overlaid on brand color',
+    },
 ];
 
 export default function Settings({ project, aiProviders }: Props) {
@@ -119,7 +161,8 @@ export default function Settings({ project, aiProviders }: Props) {
     ];
 
     const { data, setData, put, processing, errors } = useForm({
-        default_ai_provider_id: project.default_ai_provider_id?.toString() ?? '',
+        default_ai_provider_id:
+            project.default_ai_provider_id?.toString() ?? '',
         default_word_count: project.default_word_count,
         default_tone: project.default_tone,
         target_audience: project.target_audience ?? '',
@@ -132,7 +175,8 @@ export default function Settings({ project, aiProviders }: Props) {
         image_style: project.image_style ?? 'illustration',
         include_youtube_videos: project.include_youtube_videos ?? false,
         include_emojis: project.include_emojis ?? false,
-        include_infographic_placeholders: project.include_infographic_placeholders ?? false,
+        include_infographic_placeholders:
+            project.include_infographic_placeholders ?? false,
         include_cta: project.include_cta ?? true,
         cta_product_name: project.cta_product_name ?? '',
         cta_website_url: project.cta_website_url ?? '',
@@ -145,7 +189,9 @@ export default function Settings({ project, aiProviders }: Props) {
         put(`/projects/${project.id}/settings`, {
             data: {
                 ...data,
-                default_ai_provider_id: data.default_ai_provider_id ? parseInt(data.default_ai_provider_id) : null,
+                default_ai_provider_id: data.default_ai_provider_id
+                    ? parseInt(data.default_ai_provider_id)
+                    : null,
                 target_region: data.target_region || null,
             },
         });
@@ -158,7 +204,7 @@ export default function Settings({ project, aiProviders }: Props) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Settings - ${project.name}`} />
-            <div className="flex h-full flex-1 flex-col gap-6 p-4 max-w-3xl">
+            <div className="flex h-full max-w-3xl flex-1 flex-col gap-6 p-4">
                 <div>
                     <h1 className="text-2xl font-bold">Project Settings</h1>
                     <p className="text-muted-foreground">
@@ -176,10 +222,14 @@ export default function Settings({ project, aiProviders }: Props) {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="default_ai_provider_id">Default AI Provider</Label>
+                                <Label htmlFor="default_ai_provider_id">
+                                    Default AI Provider
+                                </Label>
                                 <Select
                                     value={data.default_ai_provider_id}
-                                    onValueChange={(value) => setData('default_ai_provider_id', value)}
+                                    onValueChange={(value) =>
+                                        setData('default_ai_provider_id', value)
+                                    }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a provider" />
@@ -191,48 +241,72 @@ export default function Settings({ project, aiProviders }: Props) {
                                             </SelectItem>
                                         ) : (
                                             aiProviders.map((provider) => (
-                                                <SelectItem key={provider.id} value={provider.id.toString()}>
-                                                    {provider.name} ({provider.provider})
+                                                <SelectItem
+                                                    key={provider.id}
+                                                    value={provider.id.toString()}
+                                                >
+                                                    {provider.name} (
+                                                    {provider.provider})
                                                 </SelectItem>
                                             ))
                                         )}
                                     </SelectContent>
                                 </Select>
                                 <p className="text-xs text-muted-foreground">
-                                    Used when generating articles unless overridden
+                                    Used when generating articles unless
+                                    overridden
                                 </p>
-                                <InputError message={errors.default_ai_provider_id} />
+                                <InputError
+                                    message={errors.default_ai_provider_id}
+                                />
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="default_word_count">Target Word Count</Label>
+                                    <Label htmlFor="default_word_count">
+                                        Target Word Count
+                                    </Label>
                                     <Input
                                         id="default_word_count"
                                         type="number"
                                         min={500}
                                         max={5000}
                                         value={data.default_word_count}
-                                        onChange={(e) => setData('default_word_count', parseInt(e.target.value) || 1500)}
+                                        onChange={(e) =>
+                                            setData(
+                                                'default_word_count',
+                                                parseInt(e.target.value) ||
+                                                    1500,
+                                            )
+                                        }
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         500-5000 words
                                     </p>
-                                    <InputError message={errors.default_word_count} />
+                                    <InputError
+                                        message={errors.default_word_count}
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="default_tone">Writing Tone</Label>
+                                    <Label htmlFor="default_tone">
+                                        Writing Tone
+                                    </Label>
                                     <Select
                                         value={data.default_tone}
-                                        onValueChange={(value) => setData('default_tone', value)}
+                                        onValueChange={(value) =>
+                                            setData('default_tone', value)
+                                        }
                                     >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {toneOptions.map((tone) => (
-                                                <SelectItem key={tone.value} value={tone.value}>
+                                                <SelectItem
+                                                    key={tone.value}
+                                                    value={tone.value}
+                                                >
                                                     {tone.label}
                                                 </SelectItem>
                                             ))}
@@ -243,11 +317,18 @@ export default function Settings({ project, aiProviders }: Props) {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="target_audience">Target Audience</Label>
+                                <Label htmlFor="target_audience">
+                                    Target Audience
+                                </Label>
                                 <Input
                                     id="target_audience"
                                     value={data.target_audience}
-                                    onChange={(e) => setData('target_audience', e.target.value)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'target_audience',
+                                            e.target.value,
+                                        )
+                                    }
                                     placeholder="e.g., Small business owners looking to improve SEO"
                                     maxLength={500}
                                 />
@@ -258,17 +339,25 @@ export default function Settings({ project, aiProviders }: Props) {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="brand_guidelines">Brand Guidelines</Label>
+                                <Label htmlFor="brand_guidelines">
+                                    Brand Guidelines
+                                </Label>
                                 <Textarea
                                     id="brand_guidelines"
                                     value={data.brand_guidelines}
-                                    onChange={(e) => setData('brand_guidelines', e.target.value)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'brand_guidelines',
+                                            e.target.value,
+                                        )
+                                    }
                                     placeholder="e.g., Use active voice, avoid jargon, be conversational but professional"
                                     rows={4}
                                     maxLength={2000}
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    Style rules and preferences the AI should follow
+                                    Style rules and preferences the AI should
+                                    follow
                                 </p>
                                 <InputError message={errors.brand_guidelines} />
                             </div>
@@ -291,61 +380,88 @@ export default function Settings({ project, aiProviders }: Props) {
                         <CardContent className="space-y-4">
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
-                                    <Label htmlFor="primary_language">Primary Language</Label>
+                                    <Label htmlFor="primary_language">
+                                        Primary Language
+                                    </Label>
                                     <Select
                                         value={data.primary_language}
-                                        onValueChange={(value) => setData('primary_language', value)}
+                                        onValueChange={(value) =>
+                                            setData('primary_language', value)
+                                        }
                                     >
                                         <SelectTrigger>
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {languageOptions.map((lang) => (
-                                                <SelectItem key={lang.value} value={lang.value}>
+                                                <SelectItem
+                                                    key={lang.value}
+                                                    value={lang.value}
+                                                >
                                                     {lang.label}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={errors.primary_language} />
+                                    <InputError
+                                        message={errors.primary_language}
+                                    />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="target_region">Target Region</Label>
+                                    <Label htmlFor="target_region">
+                                        Target Region
+                                    </Label>
                                     <Select
                                         value={data.target_region}
-                                        onValueChange={(value) => setData('target_region', value)}
+                                        onValueChange={(value) =>
+                                            setData('target_region', value)
+                                        }
                                     >
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select a region" />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {regionOptions.map((region) => (
-                                                <SelectItem key={region.value} value={region.value}>
+                                                <SelectItem
+                                                    key={region.value}
+                                                    value={region.value}
+                                                >
                                                     {region.label}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <InputError message={errors.target_region} />
+                                    <InputError
+                                        message={errors.target_region}
+                                    />
                                 </div>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="internal_links_per_article">Internal Links per Article</Label>
+                                <Label htmlFor="internal_links_per_article">
+                                    Internal Links per Article
+                                </Label>
                                 <Input
                                     id="internal_links_per_article"
                                     type="number"
                                     min={0}
                                     max={10}
                                     value={data.internal_links_per_article}
-                                    onChange={(e) => setData('internal_links_per_article', parseInt(e.target.value) || 0)}
+                                    onChange={(e) =>
+                                        setData(
+                                            'internal_links_per_article',
+                                            parseInt(e.target.value) || 0,
+                                        )
+                                    }
                                     className="w-24"
                                 />
                                 <p className="text-xs text-muted-foreground">
                                     How many internal links to include (0-10)
                                 </p>
-                                <InputError message={errors.internal_links_per_article} />
+                                <InputError
+                                    message={errors.internal_links_per_article}
+                                />
                             </div>
 
                             <div className="flex justify-end">
@@ -365,99 +481,162 @@ export default function Settings({ project, aiProviders }: Props) {
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="space-y-4">
-                                <h4 className="text-sm font-medium">Brand & Visual</h4>
+                                <h4 className="text-sm font-medium">
+                                    Brand & Visual
+                                </h4>
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label htmlFor="brand_color">Brand Color</Label>
+                                        <Label htmlFor="brand_color">
+                                            Brand Color
+                                        </Label>
                                         <div className="flex gap-2">
                                             <Input
                                                 id="brand_color"
                                                 type="color"
-                                                value={data.brand_color || '#3b82f6'}
-                                                onChange={(e) => setData('brand_color', e.target.value)}
+                                                value={
+                                                    data.brand_color ||
+                                                    '#3b82f6'
+                                                }
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'brand_color',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 className="h-10 w-14 cursor-pointer p-1"
                                             />
                                             <Input
                                                 value={data.brand_color}
-                                                onChange={(e) => setData('brand_color', e.target.value)}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'brand_color',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 placeholder="#3b82f6"
                                                 className="flex-1 font-mono"
                                                 maxLength={7}
                                             />
                                         </div>
                                         <p className="text-xs text-muted-foreground">
-                                            Used for featured images and visual accents
+                                            Used for featured images and visual
+                                            accents
                                         </p>
-                                        <InputError message={errors.brand_color} />
+                                        <InputError
+                                            message={errors.brand_color}
+                                        />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="image_style">Image Style</Label>
+                                        <Label htmlFor="image_style">
+                                            Image Style
+                                        </Label>
                                         <Select
                                             value={data.image_style}
-                                            onValueChange={(value) => setData('image_style', value)}
+                                            onValueChange={(value) =>
+                                                setData('image_style', value)
+                                            }
                                         >
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {imageStyleOptions.map((style) => (
-                                                    <SelectItem key={style.value} value={style.value}>
-                                                        {style.label}
-                                                    </SelectItem>
-                                                ))}
+                                                {imageStyleOptions.map(
+                                                    (style) => (
+                                                        <SelectItem
+                                                            key={style.value}
+                                                            value={style.value}
+                                                        >
+                                                            {style.label}
+                                                        </SelectItem>
+                                                    ),
+                                                )}
                                             </SelectContent>
                                         </Select>
                                         <p className="text-xs text-muted-foreground">
-                                            Style for AI-generated images (coming soon)
+                                            Style for AI-generated images
+                                            (coming soon)
                                         </p>
-                                        <InputError message={errors.image_style} />
+                                        <InputError
+                                            message={errors.image_style}
+                                        />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="space-y-4">
-                                <h4 className="text-sm font-medium">Content Enhancements</h4>
+                                <h4 className="text-sm font-medium">
+                                    Content Enhancements
+                                </h4>
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-0.5">
-                                            <Label htmlFor="include_youtube_videos">YouTube Videos</Label>
+                                            <Label htmlFor="include_youtube_videos">
+                                                YouTube Videos
+                                            </Label>
                                             <p className="text-xs text-muted-foreground">
-                                                Embed relevant YouTube videos in articles
+                                                Embed relevant YouTube videos in
+                                                articles
                                             </p>
                                         </div>
                                         <Switch
                                             id="include_youtube_videos"
-                                            checked={data.include_youtube_videos}
-                                            onCheckedChange={(checked) => setData('include_youtube_videos', checked)}
+                                            checked={
+                                                data.include_youtube_videos
+                                            }
+                                            onCheckedChange={(checked) =>
+                                                setData(
+                                                    'include_youtube_videos',
+                                                    checked,
+                                                )
+                                            }
                                         />
                                     </div>
 
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-0.5">
-                                            <Label htmlFor="include_emojis">Include Emojis</Label>
+                                            <Label htmlFor="include_emojis">
+                                                Include Emojis
+                                            </Label>
                                             <p className="text-xs text-muted-foreground">
-                                                Add emojis to headings and content
+                                                Add emojis to headings and
+                                                content
                                             </p>
                                         </div>
                                         <Switch
                                             id="include_emojis"
                                             checked={data.include_emojis}
-                                            onCheckedChange={(checked) => setData('include_emojis', checked)}
+                                            onCheckedChange={(checked) =>
+                                                setData(
+                                                    'include_emojis',
+                                                    checked,
+                                                )
+                                            }
                                         />
                                     </div>
 
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-0.5">
-                                            <Label htmlFor="include_infographic_placeholders">Infographic Placeholders</Label>
+                                            <Label htmlFor="include_infographic_placeholders">
+                                                Infographic Placeholders
+                                            </Label>
                                             <p className="text-xs text-muted-foreground">
-                                                Add placeholders for infographics you can fill in later
+                                                Add placeholders for
+                                                infographics you can fill in
+                                                later
                                             </p>
                                         </div>
                                         <Switch
                                             id="include_infographic_placeholders"
-                                            checked={data.include_infographic_placeholders}
-                                            onCheckedChange={(checked) => setData('include_infographic_placeholders', checked)}
+                                            checked={
+                                                data.include_infographic_placeholders
+                                            }
+                                            onCheckedChange={(checked) =>
+                                                setData(
+                                                    'include_infographic_placeholders',
+                                                    checked,
+                                                )
+                                            }
                                         />
                                     </div>
                                 </div>
@@ -466,15 +645,20 @@ export default function Settings({ project, aiProviders }: Props) {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="space-y-0.5">
-                                        <h4 className="text-sm font-medium">Call-to-Action</h4>
+                                        <h4 className="text-sm font-medium">
+                                            Call-to-Action
+                                        </h4>
                                         <p className="text-xs text-muted-foreground">
-                                            Include a contextual CTA promoting your product
+                                            Include a contextual CTA promoting
+                                            your product
                                         </p>
                                     </div>
                                     <Switch
                                         id="include_cta"
                                         checked={data.include_cta}
-                                        onCheckedChange={(checked) => setData('include_cta', checked)}
+                                        onCheckedChange={(checked) =>
+                                            setData('include_cta', checked)
+                                        }
                                     />
                                 </div>
 
@@ -482,60 +666,103 @@ export default function Settings({ project, aiProviders }: Props) {
                                     <div className="space-y-4 rounded-lg border p-4">
                                         <div className="grid gap-4 sm:grid-cols-2">
                                             <div className="space-y-2">
-                                                <Label htmlFor="cta_product_name">Product Name</Label>
+                                                <Label htmlFor="cta_product_name">
+                                                    Product Name
+                                                </Label>
                                                 <Input
                                                     id="cta_product_name"
-                                                    value={data.cta_product_name}
-                                                    onChange={(e) => setData('cta_product_name', e.target.value)}
+                                                    value={
+                                                        data.cta_product_name
+                                                    }
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'cta_product_name',
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                     placeholder="e.g., OpenCopy"
                                                     maxLength={100}
                                                 />
-                                                <InputError message={errors.cta_product_name} />
+                                                <InputError
+                                                    message={
+                                                        errors.cta_product_name
+                                                    }
+                                                />
                                             </div>
 
                                             <div className="space-y-2">
-                                                <Label htmlFor="cta_website_url">Website URL</Label>
+                                                <Label htmlFor="cta_website_url">
+                                                    Website URL
+                                                </Label>
                                                 <Input
                                                     id="cta_website_url"
                                                     type="url"
                                                     value={data.cta_website_url}
-                                                    onChange={(e) => setData('cta_website_url', e.target.value)}
+                                                    onChange={(e) =>
+                                                        setData(
+                                                            'cta_website_url',
+                                                            e.target.value,
+                                                        )
+                                                    }
                                                     placeholder="https://example.com"
                                                     maxLength={255}
                                                 />
-                                                <InputError message={errors.cta_website_url} />
+                                                <InputError
+                                                    message={
+                                                        errors.cta_website_url
+                                                    }
+                                                />
                                             </div>
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="cta_features">Key Features</Label>
+                                            <Label htmlFor="cta_features">
+                                                Key Features
+                                            </Label>
                                             <Textarea
                                                 id="cta_features"
                                                 value={data.cta_features}
-                                                onChange={(e) => setData('cta_features', e.target.value)}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'cta_features',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 placeholder="e.g., AI-powered content generation, SEO optimization, WordPress integration"
                                                 rows={2}
                                                 maxLength={500}
                                             />
                                             <p className="text-xs text-muted-foreground">
-                                                Features the AI will highlight in contextual CTAs
+                                                Features the AI will highlight
+                                                in contextual CTAs
                                             </p>
-                                            <InputError message={errors.cta_features} />
+                                            <InputError
+                                                message={errors.cta_features}
+                                            />
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="cta_action_text">Action Text</Label>
+                                            <Label htmlFor="cta_action_text">
+                                                Action Text
+                                            </Label>
                                             <Input
                                                 id="cta_action_text"
                                                 value={data.cta_action_text}
-                                                onChange={(e) => setData('cta_action_text', e.target.value)}
+                                                onChange={(e) =>
+                                                    setData(
+                                                        'cta_action_text',
+                                                        e.target.value,
+                                                    )
+                                                }
                                                 placeholder="e.g., Try for free, Get started, Learn more"
                                                 maxLength={100}
                                             />
                                             <p className="text-xs text-muted-foreground">
                                                 The call-to-action button text
                                             </p>
-                                            <InputError message={errors.cta_action_text} />
+                                            <InputError
+                                                message={errors.cta_action_text}
+                                            />
                                         </div>
                                     </div>
                                 )}
@@ -552,7 +779,9 @@ export default function Settings({ project, aiProviders }: Props) {
 
                 <Card className="border-destructive/50">
                     <CardHeader>
-                        <CardTitle className="text-destructive">Danger Zone</CardTitle>
+                        <CardTitle className="text-destructive">
+                            Danger Zone
+                        </CardTitle>
                         <CardDescription>
                             Irreversible actions for this project
                         </CardDescription>
@@ -562,7 +791,8 @@ export default function Settings({ project, aiProviders }: Props) {
                             <div>
                                 <p className="font-medium">Delete Project</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Permanently delete "{project.name}" and all its keywords, articles, and settings.
+                                    Permanently delete "{project.name}" and all
+                                    its keywords, articles, and settings.
                                 </p>
                             </div>
                             <AlertDialog>
@@ -574,14 +804,20 @@ export default function Settings({ project, aiProviders }: Props) {
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Delete "{project.name}"?</AlertDialogTitle>
+                                        <AlertDialogTitle>
+                                            Delete "{project.name}"?
+                                        </AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete the project
-                                            and all associated keywords, articles, and settings.
+                                            This action cannot be undone. This
+                                            will permanently delete the project
+                                            and all associated keywords,
+                                            articles, and settings.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogCancel>
+                                            Cancel
+                                        </AlertDialogCancel>
                                         <AlertDialogAction
                                             onClick={handleDelete}
                                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"

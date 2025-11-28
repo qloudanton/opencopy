@@ -34,6 +34,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.articles.update');
     Route::delete('projects/{project}/articles/{article}', [ArticleController::class, 'destroy'])
         ->name('projects.articles.destroy');
+    Route::post('projects/{project}/articles/{article}/improve', [ArticleController::class, 'improve'])
+        ->name('projects.articles.improve');
+    Route::post('projects/{project}/articles/{article}/recalculate-seo', [ArticleController::class, 'recalculateSeo'])
+        ->name('projects.articles.recalculate-seo');
     Route::get('projects/{project}/settings', [ProjectController::class, 'settings'])
         ->name('projects.settings');
     Route::put('projects/{project}/settings', [ProjectController::class, 'updateSettings'])
