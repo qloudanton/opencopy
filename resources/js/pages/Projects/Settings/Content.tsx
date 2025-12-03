@@ -86,7 +86,10 @@ export default function Content({
             e.preventDefault();
             const trimmed = newAudience.trim();
             if (trimmed && !data.target_audiences.includes(trimmed)) {
-                setData('target_audiences', [...data.target_audiences, trimmed]);
+                setData('target_audiences', [
+                    ...data.target_audiences,
+                    trimmed,
+                ]);
                 setNewAudience('');
             }
         }
@@ -160,11 +163,16 @@ export default function Content({
                                     tooltip="The AI model used to generate article content for this project. Choose 'Use account default' to automatically use whatever provider is set in your account settings."
                                 />
                                 <Select
-                                    value={data.default_ai_provider_id || 'account-default'}
+                                    value={
+                                        data.default_ai_provider_id ||
+                                        'account-default'
+                                    }
                                     onValueChange={(value) =>
                                         setData(
                                             'default_ai_provider_id',
-                                            value === 'account-default' ? '' : value,
+                                            value === 'account-default'
+                                                ? ''
+                                                : value,
                                         )
                                     }
                                 >
@@ -176,11 +184,15 @@ export default function Content({
                                             Use account default
                                             {accountDefaultTextProvider && (
                                                 <span className="ml-1 text-muted-foreground">
-                                                    ({accountDefaultTextProvider.name})
+                                                    (
+                                                    {
+                                                        accountDefaultTextProvider.name
+                                                    }
+                                                    )
                                                 </span>
                                             )}
                                         </SelectItem>
-                                        <div className="border-t my-1" />
+                                        <div className="my-1 border-t" />
                                         {textProviders.length === 0 ? (
                                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                                 No text providers configured
@@ -191,16 +203,19 @@ export default function Content({
                                                     key={provider.id}
                                                     value={provider.id.toString()}
                                                 >
-                                                    {provider.name} ({provider.provider})
+                                                    {provider.name} (
+                                                    {provider.provider})
                                                 </SelectItem>
                                             ))
                                         )}
-                                        <div className="border-t my-1" />
+                                        <div className="my-1 border-t" />
                                         <button
                                             type="button"
-                                            className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pl-2 pr-8 text-sm text-primary outline-none hover:bg-accent focus:bg-accent"
+                                            className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-primary outline-none hover:bg-accent focus:bg-accent"
                                             onClick={() =>
-                                                router.visit('/settings/ai-providers')
+                                                router.visit(
+                                                    '/settings/ai-providers',
+                                                )
                                             }
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
@@ -225,7 +240,9 @@ export default function Content({
                                             </button>
                                         </p>
                                     )}
-                                <InputError message={errors.default_ai_provider_id} />
+                                <InputError
+                                    message={errors.default_ai_provider_id}
+                                />
                             </div>
 
                             {/* Image Generation */}
@@ -237,11 +254,16 @@ export default function Content({
                                     tooltip="The AI model used to generate images for this project. Choose 'Use account default' to automatically use whatever provider is set in your account settings."
                                 />
                                 <Select
-                                    value={data.default_image_provider_id || 'account-default'}
+                                    value={
+                                        data.default_image_provider_id ||
+                                        'account-default'
+                                    }
                                     onValueChange={(value) =>
                                         setData(
                                             'default_image_provider_id',
-                                            value === 'account-default' ? '' : value,
+                                            value === 'account-default'
+                                                ? ''
+                                                : value,
                                         )
                                     }
                                 >
@@ -253,11 +275,15 @@ export default function Content({
                                             Use account default
                                             {accountDefaultImageProvider && (
                                                 <span className="ml-1 text-muted-foreground">
-                                                    ({accountDefaultImageProvider.name})
+                                                    (
+                                                    {
+                                                        accountDefaultImageProvider.name
+                                                    }
+                                                    )
                                                 </span>
                                             )}
                                         </SelectItem>
-                                        <div className="border-t my-1" />
+                                        <div className="my-1 border-t" />
                                         {imageProviders.length === 0 ? (
                                             <div className="px-2 py-1.5 text-sm text-muted-foreground">
                                                 No image providers configured
@@ -268,16 +294,19 @@ export default function Content({
                                                     key={provider.id}
                                                     value={provider.id.toString()}
                                                 >
-                                                    {provider.name} ({provider.provider})
+                                                    {provider.name} (
+                                                    {provider.provider})
                                                 </SelectItem>
                                             ))
                                         )}
-                                        <div className="border-t my-1" />
+                                        <div className="my-1 border-t" />
                                         <button
                                             type="button"
-                                            className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pl-2 pr-8 text-sm text-primary outline-none hover:bg-accent focus:bg-accent"
+                                            className="relative flex w-full cursor-pointer items-center rounded-sm py-1.5 pr-8 pl-2 text-sm text-primary outline-none hover:bg-accent focus:bg-accent"
                                             onClick={() =>
-                                                router.visit('/settings/ai-providers')
+                                                router.visit(
+                                                    '/settings/ai-providers',
+                                                )
                                             }
                                         >
                                             <Plus className="mr-2 h-4 w-4" />
@@ -302,7 +331,9 @@ export default function Content({
                                             </button>
                                         </p>
                                     )}
-                                <InputError message={errors.default_image_provider_id} />
+                                <InputError
+                                    message={errors.default_image_provider_id}
+                                />
                             </div>
                         </div>
                     </div>
@@ -343,7 +374,9 @@ export default function Content({
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <InputError message={errors.default_word_count} />
+                                <InputError
+                                    message={errors.default_word_count}
+                                />
                             </div>
 
                             <div className="space-y-2">
@@ -367,7 +400,8 @@ export default function Content({
                                                 key={tone.value}
                                                 value={tone.value}
                                             >
-                                                {tone.label} - {tone.description}
+                                                {tone.label} -{' '}
+                                                {tone.description}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -394,7 +428,9 @@ export default function Content({
                         </div>
 
                         <p className="text-xs text-muted-foreground">
-                            These are default settings for new content. You can override the tone of voice and word count for individual articles in the Content Planner.
+                            These are default settings for new content. You can
+                            override the tone of voice and word count for
+                            individual articles in the Content Planner.
                         </p>
                     </div>
 
@@ -402,7 +438,9 @@ export default function Content({
 
                     {/* Audience Section */}
                     <div className="space-y-4">
-                        <h4 className="text-sm font-medium">Audience & Brand</h4>
+                        <h4 className="text-sm font-medium">
+                            Audience & Brand
+                        </h4>
 
                         <div className="space-y-2">
                             <FieldLabel
@@ -422,7 +460,9 @@ export default function Content({
                                             <button
                                                 type="button"
                                                 onClick={() =>
-                                                    handleRemoveAudience(audience)
+                                                    handleRemoveAudience(
+                                                        audience,
+                                                    )
                                                 }
                                                 className="rounded-full p-0.5 hover:bg-muted-foreground/20"
                                             >

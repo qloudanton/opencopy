@@ -48,7 +48,7 @@ it('can create a new project', function () {
     $this->actingAs($user)
         ->post(route('projects.store'), [
             'name' => 'My Tech Blog',
-            'domain' => 'techblog.com',
+            'website_url' => 'https://techblog.com',
             'description' => 'A blog about technology',
         ])
         ->assertRedirect();
@@ -56,7 +56,7 @@ it('can create a new project', function () {
     $this->assertDatabaseHas('projects', [
         'user_id' => $user->id,
         'name' => 'My Tech Blog',
-        'domain' => 'techblog.com',
+        'website_url' => 'https://techblog.com',
     ]);
 });
 
@@ -91,42 +91,13 @@ it('cannot view another users project', function () {
         ->assertForbidden();
 });
 
-it('can view edit project page', function () {
+it('edit route redirects to settings', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
 
     $this->actingAs($user)
-        ->get(route('projects.edit', $project))
-        ->assertOk()
-        ->assertInertia(fn ($page) => $page
-            ->component('Projects/Edit')
-            ->has('project')
-        );
-});
-
-it('can update own project', function () {
-    $user = User::factory()->create();
-    $project = Project::factory()->for($user)->create();
-
-    $this->actingAs($user)
-        ->put(route('projects.update', $project), [
-            'name' => 'Updated Name',
-            'domain' => 'updated.com',
-        ])
-        ->assertRedirect(route('projects.show', $project));
-
-    expect($project->fresh()->name)->toBe('Updated Name');
-});
-
-it('cannot update another users project', function () {
-    $user = User::factory()->create();
-    $otherProject = Project::factory()->create();
-
-    $this->actingAs($user)
-        ->put(route('projects.update', $otherProject), [
-            'name' => 'Hacked',
-        ])
-        ->assertForbidden();
+        ->get("/projects/{$project->id}/edit")
+        ->assertRedirect(route('projects.settings', $project));
 });
 
 it('can delete own project', function () {
@@ -154,16 +125,13 @@ it('cannot delete another users project', function () {
 it('can view project settings page', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
-    $aiProvider = AiProvider::factory()->for($user)->create();
 
     $this->actingAs($user)
         ->get(route('projects.settings', $project))
         ->assertOk()
         ->assertInertia(fn ($page) => $page
-            ->component('Projects/Settings/General')
+            ->component('Projects/Settings/ProjectDetails')
             ->has('project')
-            ->has('textProviders')
-            ->has('imageProviders')
             ->where('project.id', $project->id)
         );
 });
@@ -177,14 +145,14 @@ it('cannot view another users project settings', function () {
         ->assertForbidden();
 });
 
-// Content (General) Settings Tests
+// Content Settings Tests
 it('can update content settings', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
-    $aiProvider = AiProvider::factory()->for($user)->create(['is_active' => true]);
+    $aiProvider = AiProvider::factory()->for($user)->create(['is_active' => true, 'supports_text' => true]);
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $project), [
+        ->put(route('projects.settings.content.update', $project), [
             'default_ai_provider_id' => $aiProvider->id,
             'default_word_count' => 2000,
             'default_tone' => 'casual',
@@ -208,7 +176,7 @@ it('cannot update another users content settings', function () {
     $otherProject = Project::factory()->create();
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $otherProject), [
+        ->put(route('projects.settings.content.update', $otherProject), [
             'default_word_count' => 2000,
             'default_tone' => 'casual',
         ])
@@ -220,14 +188,14 @@ it('validates word count range in content settings', function () {
     $project = Project::factory()->for($user)->create();
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $project), [
+        ->put(route('projects.settings.content.update', $project), [
             'default_word_count' => 100, // too low
             'default_tone' => 'professional',
         ])
         ->assertSessionHasErrors(['default_word_count']);
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $project), [
+        ->put(route('projects.settings.content.update', $project), [
             'default_word_count' => 10000, // too high
             'default_tone' => 'professional',
         ])
@@ -239,7 +207,7 @@ it('validates tone enum in content settings', function () {
     $project = Project::factory()->for($user)->create();
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $project), [
+        ->put(route('projects.settings.content.update', $project), [
             'default_word_count' => 1500,
             'default_tone' => 'invalid-tone',
         ])
@@ -249,10 +217,10 @@ it('validates tone enum in content settings', function () {
 it('validates ai provider belongs to user in content settings', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
-    $otherUserProvider = AiProvider::factory()->create();
+    $otherUserProvider = AiProvider::factory()->create(['supports_text' => true]);
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $project), [
+        ->put(route('projects.settings.content.update', $project), [
             'default_ai_provider_id' => $otherUserProvider->id,
             'default_word_count' => 1500,
             'default_tone' => 'professional',
@@ -267,7 +235,7 @@ it('allows null ai provider in content settings', function () {
     ]);
 
     $this->actingAs($user)
-        ->put(route('projects.settings.general.update', $project), [
+        ->put(route('projects.settings.content.update', $project), [
             'default_ai_provider_id' => null,
             'default_word_count' => 1500,
             'default_tone' => 'professional',

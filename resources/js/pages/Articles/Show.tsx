@@ -18,6 +18,7 @@ import axios from 'axios';
 import {
     AlertCircle,
     ArrowLeft,
+    CalendarClock,
     Check,
     CheckCircle,
     Clipboard,
@@ -60,7 +61,6 @@ interface Article {
     content_markdown: string;
     word_count: number;
     reading_time_minutes: number;
-    status: string;
     seo_score: number | null;
     generation_metadata: {
         provider?: string;
@@ -131,6 +131,13 @@ interface Publication {
     created_at: string;
 }
 
+interface ScheduledContent {
+    id: number;
+    status: string;
+    scheduled_date: string | null;
+    scheduled_time: string | null;
+}
+
 interface Props {
     project: Project;
     article: Article;
@@ -138,18 +145,39 @@ interface Props {
     costBreakdown: CostBreakdown;
     integrations: Integration[];
     publications: Publication[];
+    scheduledContent: ScheduledContent | null;
 }
 
 function getStatusColor(status: string): string {
     switch (status) {
         case 'published':
             return 'bg-green-500';
-        case 'review':
+        case 'in_review':
+        case 'approved':
             return 'bg-yellow-500';
-        case 'draft':
-            return 'bg-gray-400';
+        case 'generating':
+        case 'queued':
+        case 'publishing_queued':
+            return 'bg-blue-500';
+        case 'enriching':
+            return 'bg-purple-500';
+        case 'failed':
+            return 'bg-red-500';
         default:
             return 'bg-gray-400';
+    }
+}
+
+function formatStatus(status: string): string {
+    switch (status) {
+        case 'in_review':
+            return 'In Review';
+        case 'publishing_queued':
+            return 'Publishing';
+        case 'enriching':
+            return 'Enriching';
+        default:
+            return status.charAt(0).toUpperCase() + status.slice(1);
     }
 }
 
@@ -180,6 +208,7 @@ export default function Show({
     costBreakdown,
     integrations,
     publications: initialPublications,
+    scheduledContent,
 }: Props) {
     const [copied, setCopied] = useState(false);
     const [publications, setPublications] =
@@ -556,14 +585,22 @@ export default function Show({
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex items-center gap-2">
-                                    <div
-                                        className={`h-2 w-2 rounded-full ${getStatusColor(article.status)}`}
-                                    />
-                                    <span className="text-sm font-medium capitalize">
-                                        {article.status}
+                                {scheduledContent ? (
+                                    <div className="flex items-center gap-2">
+                                        <div
+                                            className={`h-2 w-2 rounded-full ${getStatusColor(scheduledContent.status)}`}
+                                        />
+                                        <span className="text-sm font-medium">
+                                            {formatStatus(
+                                                scheduledContent.status,
+                                            )}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <span className="text-sm text-muted-foreground">
+                                        -
                                     </span>
-                                </div>
+                                )}
                             </CardContent>
                         </Card>
 
@@ -701,11 +738,148 @@ export default function Show({
                                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                                     )}
                                 </div>
-                                <CardDescription>
-                                    Send to your integrations
-                                </CardDescription>
                             </CardHeader>
-                            <CardContent>
+                            <CardContent className="space-y-4">
+                                {/* Schedule/Publishing Status Banner */}
+                                {scheduledContent?.status === 'published' ? (
+                                    (() => {
+                                        // Find successful publications
+                                        const successfulPubs = publications.filter(
+                                            (p) => p.status === 'published',
+                                        );
+                                        // Get the most recent published_at date
+                                        const mostRecentPub = successfulPubs
+                                            .filter((p) => p.published_at)
+                                            .sort(
+                                                (a, b) =>
+                                                    new Date(
+                                                        b.published_at!,
+                                                    ).getTime() -
+                                                    new Date(
+                                                        a.published_at!,
+                                                    ).getTime(),
+                                            )[0];
+
+                                        return (
+                                            <div className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/50">
+                                                <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-600" />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-medium text-green-900 dark:text-green-100">
+                                                        Published
+                                                    </p>
+                                                    {mostRecentPub?.published_at && (
+                                                        <p className="text-sm text-green-700 dark:text-green-300">
+                                                            {new Date(
+                                                                mostRecentPub.published_at,
+                                                            ).toLocaleDateString(
+                                                                'en-US',
+                                                                {
+                                                                    weekday:
+                                                                        'short',
+                                                                    month: 'short',
+                                                                    day: 'numeric',
+                                                                    year: 'numeric',
+                                                                },
+                                                            )}{' '}
+                                                            at{' '}
+                                                            {new Date(
+                                                                mostRecentPub.published_at,
+                                                            ).toLocaleTimeString(
+                                                                'en-US',
+                                                                {
+                                                                    hour: 'numeric',
+                                                                    minute: '2-digit',
+                                                                },
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                    {successfulPubs.length >
+                                                        0 && (
+                                                        <div className="mt-2 flex flex-wrap gap-1.5">
+                                                            {successfulPubs.map(
+                                                                (pub) => (
+                                                                    <span
+                                                                        key={
+                                                                            pub.id
+                                                                        }
+                                                                        className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/50 dark:text-green-200"
+                                                                    >
+                                                                        {pub.integration_name ||
+                                                                            pub.integration_type ||
+                                                                            'Integration'}
+                                                                    </span>
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()
+                                ) : scheduledContent?.status ===
+                                  'enriching' ? (
+                                    <div className="flex items-start gap-3 rounded-lg border border-purple-200 bg-purple-50 p-3 dark:border-purple-900 dark:bg-purple-950/50">
+                                        <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-purple-600" />
+                                        <div>
+                                            <p className="font-medium text-purple-900 dark:text-purple-100">
+                                                Enriching...
+                                            </p>
+                                            <p className="text-sm text-purple-700 dark:text-purple-300">
+                                                Adding images, videos, and other
+                                                enhancements.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : scheduledContent?.status ===
+                                  'publishing_queued' ? (
+                                    <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
+                                        <Loader2 className="mt-0.5 h-5 w-5 shrink-0 animate-spin text-blue-600" />
+                                        <div>
+                                            <p className="font-medium text-blue-900 dark:text-blue-100">
+                                                Publishing...
+                                            </p>
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                                This article is being published
+                                                to your integrations.
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : scheduledContent?.scheduled_date ? (
+                                    <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950/50">
+                                        <CalendarClock className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+                                        <div>
+                                            <p className="font-medium text-blue-900 dark:text-blue-100">
+                                                Scheduled
+                                            </p>
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                                {new Date(
+                                                    scheduledContent.scheduled_date,
+                                                ).toLocaleDateString('en-US', {
+                                                    weekday: 'short',
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                })}
+                                                {scheduledContent.scheduled_time &&
+                                                    ` at ${scheduledContent.scheduled_time}`}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-start gap-3 rounded-lg border border-muted bg-muted/30 p-3">
+                                        <Clock className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                                        <div>
+                                            <p className="font-medium">
+                                                Not Scheduled
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Publish manually or schedule via
+                                                the content planner.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Integrations */}
                                 {integrations.length === 0 ? (
                                     <div className="text-center">
                                         <p className="text-sm text-muted-foreground">
@@ -848,6 +1022,7 @@ export default function Show({
                                 )}
                             </CardContent>
                         </Card>
+
                     </div>
                 </div>
             </div>

@@ -61,7 +61,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Get all projects for the authenticated user.
      *
-     * @return array<int, array{id: int, name: string, domain: string|null}>
+     * @return array<int, array{id: int, name: string, domain: string|null, website_url: string|null}>
      */
     protected function getProjects(Request $request): array
     {
@@ -71,7 +71,7 @@ class HandleInertiaRequests extends Middleware
 
         return $request->user()
             ->projects()
-            ->select('id', 'name', 'domain')
+            ->select('id', 'name', 'domain', 'website_url')
             ->orderBy('name')
             ->get()
             ->toArray();
@@ -80,7 +80,7 @@ class HandleInertiaRequests extends Middleware
     /**
      * Get the current project from the route.
      *
-     * @return array{id: int, name: string, domain: string|null}|null
+     * @return array{id: int, name: string, domain: string|null, website_url: string|null}|null
      */
     protected function getCurrentProject(Request $request): ?array
     {
@@ -91,6 +91,7 @@ class HandleInertiaRequests extends Middleware
                 'id' => $project->id,
                 'name' => $project->name,
                 'domain' => $project->domain,
+                'website_url' => $project->website_url,
             ];
         }
 

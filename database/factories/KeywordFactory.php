@@ -22,45 +22,7 @@ class KeywordFactory extends Factory
             'target_word_count' => fake()->randomElement([1000, 1500, 2000, 2500]),
             'tone' => fake()->optional()->randomElement(['professional', 'casual', 'technical', 'friendly']),
             'additional_instructions' => fake()->optional()->sentence(),
-            'status' => 'pending',
             'priority' => fake()->numberBetween(0, 10),
-            'error_message' => null,
         ];
-    }
-
-    public function pending(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'pending',
-        ]);
-    }
-
-    public function queued(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'queued',
-        ]);
-    }
-
-    public function generating(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'generating',
-        ]);
-    }
-
-    public function completed(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'completed',
-        ]);
-    }
-
-    public function failed(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'failed',
-            'error_message' => fake()->sentence(),
-        ]);
     }
 }

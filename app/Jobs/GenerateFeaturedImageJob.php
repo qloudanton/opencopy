@@ -48,11 +48,17 @@ class GenerateFeaturedImageJob implements ShouldQueue
     {
         $cacheKey = self::statusCacheKey($this->article->id);
 
+        // Get the scheduled content for this article (if any)
+        $scheduledContent = $this->article->scheduledContent;
+
         try {
             Cache::put($cacheKey, [
                 'status' => 'processing',
                 'started_at' => now()->toIso8601String(),
             ], now()->addMinutes(10));
+
+            // Set enriching status while generating featured image
+            $scheduledContent?->startEnriching();
 
             $result = $imageService->generate($this->article, $this->aiProvider, $this->style);
 
@@ -62,6 +68,9 @@ class GenerateFeaturedImageJob implements ShouldQueue
                 'image_url' => $result['url'],
                 'completed_at' => now()->toIso8601String(),
             ], now()->addMinutes(10));
+
+            // Restore previous status after featured image is generated
+            $scheduledContent?->completeEnriching();
 
         } catch (\Exception $e) {
             Log::error('Featured image generation failed', [
@@ -74,6 +83,9 @@ class GenerateFeaturedImageJob implements ShouldQueue
                 'error' => $e->getMessage(),
                 'failed_at' => now()->toIso8601String(),
             ], now()->addMinutes(10));
+
+            // Restore previous status even on failure (don't leave stuck in enriching)
+            $scheduledContent?->completeEnriching();
         }
     }
 }

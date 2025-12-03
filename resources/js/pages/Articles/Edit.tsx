@@ -28,6 +28,7 @@ import {
     Download,
     Image,
     RefreshCw,
+    Sparkles,
     Trash2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -54,7 +55,6 @@ interface Article {
     meta_description: string | null;
     content: string;
     content_markdown: string;
-    status: string;
     seo_score: number | null;
     generation_metadata: {
         seo_breakdown?: SeoBreakdown;
@@ -105,6 +105,7 @@ export default function Edit({
     const [isRecalculating, setIsRecalculating] = useState(false);
     const [isGeneratingImage, setIsGeneratingImage] = useState(false);
     const [isDeletingImage, setIsDeletingImage] = useState(false);
+    const [isEnriching, setIsEnriching] = useState(false);
     const [currentSeoScore, setCurrentSeoScore] = useState<number | null>(
         article.seo_score,
     );
@@ -149,7 +150,6 @@ export default function Edit({
         slug: article.slug,
         meta_description: article.meta_description || '',
         content: article.content_markdown || article.content,
-        status: article.status,
     });
 
     function handleSubmit(e: React.FormEvent) {
@@ -430,6 +430,108 @@ export default function Edit({
         }
     }
 
+    const enrichmentPollingRef = useRef<ReturnType<typeof setInterval> | null>(
+        null,
+    );
+
+    const stopEnrichmentPolling = useCallback(() => {
+        if (enrichmentPollingRef.current) {
+            clearInterval(enrichmentPollingRef.current);
+            enrichmentPollingRef.current = null;
+        }
+    }, []);
+
+    const pollForEnrichmentStatus = useCallback(async () => {
+        try {
+            const response = await axios.get(
+                `/projects/${project.id}/articles/${article.id}/enrichment-status`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                },
+            );
+
+            const { status, content, results, error } = response.data;
+
+            if (status === 'completed') {
+                stopEnrichmentPolling();
+                setIsEnriching(false);
+
+                if (content) {
+                    setData('content', content);
+                }
+
+                const imagesProcessed = results?.images?.processed || 0;
+                const videosProcessed = results?.videos?.processed || 0;
+
+                if (imagesProcessed > 0 || videosProcessed > 0) {
+                    const parts = [];
+                    if (imagesProcessed > 0) {
+                        parts.push(
+                            `${imagesProcessed} image${imagesProcessed > 1 ? 's' : ''}`,
+                        );
+                    }
+                    if (videosProcessed > 0) {
+                        parts.push(
+                            `${videosProcessed} video${videosProcessed > 1 ? 's' : ''}`,
+                        );
+                    }
+                    toast.success(`Enriched content: ${parts.join(', ')} added`);
+                } else {
+                    toast.info('No placeholders found to enrich');
+                }
+            } else if (status === 'failed') {
+                stopEnrichmentPolling();
+                setIsEnriching(false);
+                toast.error(error || 'Content enrichment failed');
+            }
+            // If status is 'queued' or 'processing', keep polling
+        } catch (error) {
+            stopEnrichmentPolling();
+            setIsEnriching(false);
+            toast.error('Failed to check enrichment status');
+        }
+    }, [project.id, article.id, stopEnrichmentPolling, setData]);
+
+    // Cleanup enrichment polling on unmount
+    useEffect(() => {
+        return () => stopEnrichmentPolling();
+    }, [stopEnrichmentPolling]);
+
+    async function handleEnrichContent() {
+        setIsEnriching(true);
+        try {
+            const response = await axios.post(
+                `/projects/${project.id}/articles/${article.id}/enrich`,
+                {},
+                {
+                    headers: {
+                        'X-CSRF-TOKEN': csrf_token,
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                },
+            );
+
+            if (response.data.status === 'queued') {
+                toast.info('Enriching content...');
+                // Start polling every 3 seconds
+                enrichmentPollingRef.current = setInterval(
+                    pollForEnrichmentStatus,
+                    3000,
+                );
+            }
+        } catch (error) {
+            setIsEnriching(false);
+            if (axios.isAxiosError(error) && error.response?.data?.error) {
+                toast.error(error.response.data.error);
+            } else {
+                toast.error('Failed to start content enrichment');
+            }
+        }
+    }
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`Edit - ${article.title}`} />
@@ -487,44 +589,16 @@ export default function Edit({
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="grid gap-4 md:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="title">Title</Label>
-                                        <Input
-                                            id="title"
-                                            value={data.title}
-                                            onChange={(e) =>
-                                                setData('title', e.target.value)
-                                            }
-                                        />
-                                        <InputError message={errors.title} />
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <Label htmlFor="status">Status</Label>
-                                        <Select
-                                            value={data.status}
-                                            onValueChange={(value) =>
-                                                setData('status', value)
-                                            }
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="draft">
-                                                    Draft
-                                                </SelectItem>
-                                                <SelectItem value="review">
-                                                    Review
-                                                </SelectItem>
-                                                <SelectItem value="published">
-                                                    Published
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <InputError message={errors.status} />
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="title">Title</Label>
+                                    <Input
+                                        id="title"
+                                        value={data.title}
+                                        onChange={(e) =>
+                                            setData('title', e.target.value)
+                                        }
+                                    />
+                                    <InputError message={errors.title} />
                                 </div>
 
                                 <div className="space-y-2">
@@ -715,6 +789,45 @@ export default function Edit({
                                         </Button>
                                     )}
                                 </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* Enrich Content Card */}
+                        <Card>
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-base">
+                                    Enrich Content
+                                </CardTitle>
+                                <CardDescription>
+                                    Process image and video placeholders in your
+                                    content
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="mb-4 text-sm text-muted-foreground">
+                                    This will scan your content for
+                                    [IMAGE_PLACEHOLDER] and [VIDEO_PLACEHOLDER]
+                                    tags and replace them with generated images
+                                    or embedded videos.
+                                </p>
+                                <Button
+                                    className="w-full"
+                                    variant="outline"
+                                    onClick={handleEnrichContent}
+                                    disabled={isEnriching}
+                                >
+                                    {isEnriching ? (
+                                        <>
+                                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                                            Enriching...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="mr-2 h-4 w-4" />
+                                            Enrich Content
+                                        </>
+                                    )}
+                                </Button>
                             </CardContent>
                         </Card>
 

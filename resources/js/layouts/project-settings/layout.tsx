@@ -48,6 +48,11 @@ export default function ProjectSettingsLayout({
             icon: null,
         },
         {
+            title: 'Publishing',
+            href: `/projects/${projectId}/settings/publishing`,
+            icon: null,
+        },
+        {
             title: 'Danger Zone',
             href: `/projects/${projectId}/settings/danger-zone`,
             icon: null,

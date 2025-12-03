@@ -1,9 +1,11 @@
 <?php
 
+use App\Enums\ContentStatus;
 use App\Models\AiProvider;
 use App\Models\Article;
 use App\Models\Keyword;
 use App\Models\Project;
+use App\Models\ScheduledContent;
 use App\Models\User;
 use App\Services\ArticleGenerationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -64,7 +66,7 @@ MD;
     app()->instance(Prism::class, $mockPrism);
 }
 
-it('generates an article from a keyword', function () {
+it('generates an article from scheduled content', function () {
     mockPrismResponse();
 
     $user = User::factory()->create();
@@ -72,11 +74,14 @@ it('generates an article from a keyword', function () {
     $aiProvider = AiProvider::factory()->for($user)->openai()->default()->create();
     $keyword = Keyword::factory()->for($project)->create([
         'keyword' => 'best coffee makers',
-        'status' => 'pending',
     ]);
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article)->toBeInstanceOf(Article::class)
         ->and($article->title)->toBe('Test Article Title')
@@ -84,10 +89,9 @@ it('generates an article from a keyword', function () {
         ->and($article->project_id)->toBe($project->id)
         ->and($article->keyword_id)->toBe($keyword->id)
         ->and($article->ai_provider_id)->toBe($aiProvider->id)
-        ->and($article->status)->toBe('draft')
         ->and($article->generated_at)->not->toBeNull();
 
-    expect($keyword->fresh()->status)->toBe('completed');
+    expect($scheduledContent->fresh()->status)->toBe(ContentStatus::InReview);
 });
 
 it('uses the default ai provider when none specified', function () {
@@ -98,9 +102,13 @@ it('uses the default ai provider when none specified', function () {
     $defaultProvider = AiProvider::factory()->for($user)->default()->create();
     AiProvider::factory()->for($user)->create(['is_default' => false]);
     $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article->ai_provider_id)->toBe($defaultProvider->id);
 });
@@ -115,9 +123,13 @@ it('uses first active provider when no default set', function () {
         'is_active' => true,
     ]);
     $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article->ai_provider_id)->toBe($activeProvider->id);
 });
@@ -126,9 +138,13 @@ it('throws exception when no ai provider configured', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
     $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $service->generate($keyword);
+    $service->generate($scheduledContent);
 })->throws(RuntimeException::class, 'No active AI provider configured');
 
 it('throws exception when specified provider is inactive', function () {
@@ -136,9 +152,13 @@ it('throws exception when specified provider is inactive', function () {
     $project = Project::factory()->for($user)->create();
     $inactiveProvider = AiProvider::factory()->for($user)->create(['is_active' => false]);
     $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $service->generate($keyword, $inactiveProvider);
+    $service->generate($scheduledContent, $inactiveProvider);
 })->throws(RuntimeException::class, 'The selected AI provider is not active');
 
 it('throws exception when provider belongs to different user', function () {
@@ -147,26 +167,34 @@ it('throws exception when provider belongs to different user', function () {
     $project = Project::factory()->for($user)->create();
     $otherProvider = AiProvider::factory()->for($otherUser)->create();
     $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $service->generate($keyword, $otherProvider);
+    $service->generate($scheduledContent, $otherProvider);
 })->throws(RuntimeException::class, 'The AI provider does not belong to the project owner');
 
-it('updates keyword status to generating during generation', function () {
+it('updates scheduled content status to generating then in_review on success', function () {
     mockPrismResponse();
 
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
-    $keyword = Keyword::factory()->for($project)->create(['status' => 'pending']);
+    $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $service->generate($keyword);
+    $service->generate($scheduledContent);
 
-    expect($keyword->fresh()->status)->toBe('completed');
+    expect($scheduledContent->fresh()->status)->toBe(ContentStatus::InReview);
 });
 
-it('updates keyword status to failed on error', function () {
+it('updates scheduled content status to failed on error', function () {
     $mockPendingRequest = Mockery::mock(PendingRequest::class);
     $mockPendingRequest->shouldReceive('using')->andReturnSelf();
     $mockPendingRequest->shouldReceive('withClientOptions')->andReturnSelf();
@@ -183,18 +211,22 @@ it('updates keyword status to failed on error', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
-    $keyword = Keyword::factory()->for($project)->create(['status' => 'pending']);
+    $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
 
     try {
-        $service->generate($keyword);
+        $service->generate($scheduledContent);
     } catch (Exception) {
         // Expected
     }
 
-    expect($keyword->fresh()->status)->toBe('failed')
-        ->and($keyword->fresh()->error_message)->toBe('API Error');
+    expect($scheduledContent->fresh()->status)->toBe(ContentStatus::Failed)
+        ->and($scheduledContent->fresh()->error_message)->toBe('API Error');
 });
 
 it('stores generation metadata', function () {
@@ -208,9 +240,13 @@ it('stores generation metadata', function () {
         'secondary_keywords' => ['related', 'terms'],
         'target_word_count' => 2000,
     ]);
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article->generation_metadata)
         ->toHaveKey('provider', 'openai')
@@ -227,9 +263,13 @@ it('parses title from markdown heading when no frontmatter', function () {
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
     $keyword = Keyword::factory()->for($project)->create(['keyword' => 'fallback keyword']);
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article->title)->toBe('My Article Title');
 });
@@ -241,9 +281,13 @@ it('uses keyword as title when no title found', function () {
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
     $keyword = Keyword::factory()->for($project)->create(['keyword' => 'my keyword']);
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article->title)->toBe('my keyword');
 });
@@ -265,9 +309,13 @@ MD;
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
     $keyword = Keyword::factory()->for($project)->create();
+    $scheduledContent = ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->scheduled()
+        ->create();
 
     $service = app(ArticleGenerationService::class);
-    $article = $service->generate($keyword);
+    $article = $service->generate($scheduledContent);
 
     expect($article->word_count)->toBeGreaterThan(0)
         ->and($article->reading_time_minutes)->toBeGreaterThanOrEqual(1);

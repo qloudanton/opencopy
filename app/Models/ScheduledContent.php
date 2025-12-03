@@ -22,6 +22,7 @@ class ScheduledContent extends Model
         'title',
         'content_type',
         'status',
+        'previous_status',
         'scheduled_date',
         'scheduled_time',
         'position',
@@ -141,6 +142,11 @@ class ScheduledContent extends Model
         return $this->status === ContentStatus::Scheduled;
     }
 
+    public function isQueued(): bool
+    {
+        return $this->status === ContentStatus::Queued;
+    }
+
     public function isGenerating(): bool
     {
         return $this->status === ContentStatus::Generating;
@@ -220,6 +226,41 @@ class ScheduledContent extends Model
             'article_id' => $article->id,
             'status' => ContentStatus::InReview,
             'generation_completed_at' => now(),
+        ]);
+
+        return $this;
+    }
+
+    /**
+     * Start the enrichment phase (adding images, links, etc.)
+     * Stores the previous status to restore after enrichment completes.
+     */
+    public function startEnriching(): self
+    {
+        // Store the current status to restore later (only if not already enriching)
+        if ($this->status !== ContentStatus::Enriching) {
+            $this->update([
+                'status' => ContentStatus::Enriching,
+                'previous_status' => $this->status->value,
+            ]);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Complete the enrichment phase and restore the previous status.
+     */
+    public function completeEnriching(): self
+    {
+        // Restore the previous status, or default to InReview
+        $previousStatus = $this->previous_status
+            ? ContentStatus::from($this->previous_status)
+            : ContentStatus::InReview;
+
+        $this->update([
+            'status' => $previousStatus,
+            'previous_status' => null,
         ]);
 
         return $this;

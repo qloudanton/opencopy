@@ -102,8 +102,8 @@ export default function Integrations({ settings }: Props) {
                                     )}
                                 </CardTitle>
                                 <CardDescription>
-                                    Automatically find and embed relevant YouTube
-                                    videos in your articles
+                                    Automatically find and embed relevant
+                                    YouTube videos in your articles
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">

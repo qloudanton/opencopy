@@ -1,5 +1,6 @@
 import Image from '@tiptap/extension-image';
 import { ReactNodeViewRenderer } from '@tiptap/react';
+import { defaultMarkdownSerializer } from 'prosemirror-markdown';
 import { ImageNodeView } from './image-node-view';
 
 export interface ImageOptions {
@@ -38,6 +39,17 @@ export const CustomImage = Image.extend({
             },
             'data-style': {
                 default: 'illustration',
+            },
+        };
+    },
+
+    addStorage() {
+        return {
+            markdown: {
+                serialize: defaultMarkdownSerializer.nodes.image,
+                parse: {
+                    // handled by markdown-it
+                },
             },
         };
     },

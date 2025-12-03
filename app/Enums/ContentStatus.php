@@ -6,9 +6,12 @@ enum ContentStatus: string
 {
     case Backlog = 'backlog';
     case Scheduled = 'scheduled';
+    case Queued = 'queued';
     case Generating = 'generating';
+    case Enriching = 'enriching';
     case InReview = 'in_review';
     case Approved = 'approved';
+    case PublishingQueued = 'publishing_queued';
     case Published = 'published';
     case Failed = 'failed';
 
@@ -17,9 +20,12 @@ enum ContentStatus: string
         return match ($this) {
             self::Backlog => 'Backlog',
             self::Scheduled => 'Scheduled',
+            self::Queued => 'Queued',
             self::Generating => 'Generating',
+            self::Enriching => 'Enriching',
             self::InReview => 'In Review',
             self::Approved => 'Approved',
+            self::PublishingQueued => 'Publishing',
             self::Published => 'Published',
             self::Failed => 'Failed',
         };
@@ -30,9 +36,12 @@ enum ContentStatus: string
         return match ($this) {
             self::Backlog => 'slate',
             self::Scheduled => 'blue',
+            self::Queued => 'amber',
             self::Generating => 'yellow',
+            self::Enriching => 'purple',
             self::InReview => 'orange',
             self::Approved => 'green',
+            self::PublishingQueued => 'blue',
             self::Published => 'emerald',
             self::Failed => 'red',
         };
@@ -43,9 +52,12 @@ enum ContentStatus: string
         return match ($this) {
             self::Backlog => 'inbox',
             self::Scheduled => 'calendar',
+            self::Queued => 'clock',
             self::Generating => 'sparkles',
+            self::Enriching => 'wand',
             self::InReview => 'eye',
             self::Approved => 'check-circle',
+            self::PublishingQueued => 'clock',
             self::Published => 'globe',
             self::Failed => 'x-circle',
         };
@@ -65,10 +77,13 @@ enum ContentStatus: string
     {
         return match ($this) {
             self::Backlog => in_array($status, [self::Scheduled]),
-            self::Scheduled => in_array($status, [self::Backlog, self::Generating]),
-            self::Generating => in_array($status, [self::InReview, self::Failed]),
-            self::InReview => in_array($status, [self::Approved, self::Scheduled]),
-            self::Approved => in_array($status, [self::Published, self::InReview]),
+            self::Scheduled => in_array($status, [self::Backlog, self::Queued]),
+            self::Queued => in_array($status, [self::Generating, self::Failed]),
+            self::Generating => in_array($status, [self::Enriching, self::InReview, self::Failed]),
+            self::Enriching => in_array($status, [self::InReview, self::Approved, self::Failed]),
+            self::InReview => in_array($status, [self::Enriching, self::Approved, self::Scheduled]),
+            self::Approved => in_array($status, [self::Enriching, self::Published, self::InReview]),
+            self::PublishingQueued => in_array($status, [self::Published]),
             self::Published => false,
             self::Failed => in_array($status, [self::Scheduled, self::Backlog]),
         };
@@ -82,10 +97,14 @@ enum ContentStatus: string
         return [
             'backlog' => self::Backlog,
             'scheduled' => self::Scheduled,
+            'queued' => self::Queued,
             'generating' => self::Generating,
+            'enriching' => self::Enriching,
             'in_review' => self::InReview,
             'approved' => self::Approved,
+            'publishing_queued' => self::PublishingQueued,
             'published' => self::Published,
+            'failed' => self::Failed,
         ];
     }
 }

@@ -54,16 +54,21 @@ interface Keyword {
     keyword: string;
 }
 
+interface ScheduledContent {
+    id: number;
+    status: string;
+}
+
 interface Article {
     id: number;
     title: string;
     slug: string;
-    status: string;
     word_count: number;
     reading_time_minutes: number;
     seo_score: number | null;
     usage_logs_sum_estimated_cost: number | null;
     keyword: Keyword | null;
+    scheduled_content: ScheduledContent | null;
     created_at: string;
 }
 
@@ -93,12 +98,31 @@ function getStatusVariant(
     switch (status) {
         case 'published':
             return 'default';
-        case 'review':
+        case 'in_review':
+        case 'approved':
             return 'secondary';
-        case 'draft':
+        case 'generating':
+        case 'queued':
+        case 'enriching':
+        case 'publishing_queued':
             return 'outline';
+        case 'failed':
+            return 'destructive';
         default:
             return 'outline';
+    }
+}
+
+function formatStatus(status: string): string {
+    switch (status) {
+        case 'in_review':
+            return 'In Review';
+        case 'publishing_queued':
+            return 'Publishing';
+        case 'enriching':
+            return 'Enriching';
+        default:
+            return status.charAt(0).toUpperCase() + status.slice(1);
     }
 }
 
@@ -200,13 +224,25 @@ export default function Index({ project, articles }: Props) {
                                                 )}
                                             </td>
                                             <td className="p-3">
-                                                <Badge
-                                                    variant={getStatusVariant(
-                                                        article.status,
-                                                    )}
-                                                >
-                                                    {article.status}
-                                                </Badge>
+                                                {article.scheduled_content ? (
+                                                    <Badge
+                                                        variant={getStatusVariant(
+                                                            article
+                                                                .scheduled_content
+                                                                .status,
+                                                        )}
+                                                    >
+                                                        {formatStatus(
+                                                            article
+                                                                .scheduled_content
+                                                                .status,
+                                                        )}
+                                                    </Badge>
+                                                ) : (
+                                                    <span className="text-sm text-muted-foreground">
+                                                        -
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="p-3">
                                                 <SeoScoreBadge

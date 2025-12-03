@@ -66,6 +66,11 @@ class ArticleImageService
     public function processArticleImages(Article $article, AiProvider $aiProvider): array
     {
         $content = $article->content_markdown ?? $article->content;
+
+        // Fix any escaped brackets in image markdown syntax that may have been
+        // introduced by the markdown serializer (e.g., !\[... -> ![...)
+        $content = $this->fixEscapedImageSyntax($content);
+
         $placeholders = $this->findImagePlaceholders($content);
 
         if (empty($placeholders)) {
@@ -151,6 +156,23 @@ class ArticleImageService
         }
 
         return $placeholders;
+    }
+
+    /**
+     * Fix escaped brackets in markdown image syntax.
+     *
+     * The markdown serializer sometimes escapes brackets, turning valid image syntax
+     * like ![alt](url) into !\[alt](url). This method fixes those escaped brackets.
+     */
+    protected function fixEscapedImageSyntax(string $content): string
+    {
+        // Fix !\[ -> ![ (escaped opening bracket in image syntax)
+        $content = preg_replace('/!\\\\\[/', '![', $content);
+
+        // Fix \]( -> ]( (escaped closing bracket before URL)
+        $content = preg_replace('/\\\\\]\(/', '](', $content);
+
+        return $content;
     }
 
     /**

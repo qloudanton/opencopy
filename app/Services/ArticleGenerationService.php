@@ -6,7 +6,9 @@ use App\Models\AiProvider;
 use App\Models\Article;
 use App\Models\Keyword;
 use App\Models\ProjectPage;
+use App\Models\ScheduledContent;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Prism\Prism\Prism;
 use Prism\Prism\Text\Response as TextResponse;
@@ -14,6 +16,8 @@ use Prism\Prism\Text\Response as TextResponse;
 class ArticleGenerationService
 {
     protected Keyword $keyword;
+
+    protected ScheduledContent $scheduledContent;
 
     protected AiProvider $aiProvider;
 
@@ -32,51 +36,132 @@ class ArticleGenerationService
         protected SitemapService $sitemapService
     ) {}
 
-    public function generate(Keyword $keyword, ?AiProvider $aiProvider = null): Article
+    public function generate(ScheduledContent $scheduledContent, ?AiProvider $aiProvider = null): Article
     {
-        $this->keyword = $keyword;
+        $startTime = microtime(true);
+        $this->scheduledContent = $scheduledContent;
+        $this->keyword = $scheduledContent->keyword;
+
+        Log::info('[ArticleGeneration] Starting generation', [
+            'scheduled_content_id' => $scheduledContent->id,
+            'keyword_id' => $this->keyword->id,
+            'keyword' => $this->keyword->keyword,
+            'project_id' => $scheduledContent->project_id,
+        ]);
+
         $this->aiProvider = $aiProvider ?? $this->getDefaultProvider();
+
+        Log::info('[ArticleGeneration] Using AI provider', [
+            'provider_id' => $this->aiProvider->id,
+            'provider' => $this->aiProvider->provider,
+            'model' => $this->aiProvider->model,
+        ]);
 
         $this->validateProvider();
 
-        $this->keyword->update(['status' => 'generating']);
+        // Mark scheduled content as generating
+        $this->scheduledContent->startGeneration();
 
         try {
+            Log::info('[ArticleGeneration] Calling AI API...', [
+                'keyword_id' => $this->keyword->id,
+                'timeout' => 300,
+            ]);
+
+            $aiStartTime = microtime(true);
             $this->generatedContent = $this->callAi();
+            $aiDuration = round(microtime(true) - $aiStartTime, 2);
+
+            Log::info('[ArticleGeneration] AI API call completed', [
+                'keyword_id' => $this->keyword->id,
+                'duration_seconds' => $aiDuration,
+                'content_length' => strlen($this->generatedContent ?? ''),
+            ]);
+
+            Log::info('[ArticleGeneration] Creating article in database...', [
+                'keyword_id' => $this->keyword->id,
+            ]);
 
             $article = DB::transaction(function () {
                 $article = $this->createArticle();
-                $this->keyword->update(['status' => 'completed', 'error_message' => null]);
+
+                // Mark scheduled content as complete
+                $this->scheduledContent->completeGeneration($article);
 
                 return $article;
             });
 
+            Log::info('[ArticleGeneration] Article created', [
+                'article_id' => $article->id,
+                'title' => $article->title,
+                'word_count' => $article->word_count,
+            ]);
+
             // Log usage for text generation
             $this->logUsage($article);
 
-            // Calculate SEO score after article is created
-            $this->seoScoreService->calculateAndSave($article);
+            // Check if we need to do any enrichment
+            $project = $this->keyword->project;
+            $needsEnrichment = ($project->generate_inline_images && $project->image_style)
+                || $this->keyword->project->include_youtube_videos;
+
+            if ($needsEnrichment) {
+                // Set status to enriching while we add images, videos, etc.
+                $this->scheduledContent->startEnriching();
+            }
 
             // Process inline image placeholders if enabled and project has image style configured
-            $project = $this->keyword->project;
             if ($project->generate_inline_images && $project->image_style) {
+                Log::info('[ArticleGeneration] Processing inline images...', [
+                    'article_id' => $article->id,
+                ]);
                 $this->processInlineImages($article);
             }
 
             // Process video placeholders if YouTube is configured and videos are enabled
             if ($this->keyword->project->include_youtube_videos) {
+                Log::info('[ArticleGeneration] Processing video placeholders...', [
+                    'article_id' => $article->id,
+                ]);
                 $this->processVideoPlaceholders($article);
             }
 
             // Track smart link usage
             $this->trackSmartLinkUsage();
 
+            // Calculate SEO score after article is created
+            Log::info('[ArticleGeneration] Calculating SEO score...', [
+                'article_id' => $article->id,
+            ]);
+            $this->seoScoreService->calculateAndSave($article);
+
+            // Complete enrichment and restore previous status
+            if ($needsEnrichment) {
+                $this->scheduledContent->completeEnriching();
+            }
+
+            $totalDuration = round(microtime(true) - $startTime, 2);
+            Log::info('[ArticleGeneration] Generation completed successfully', [
+                'keyword_id' => $this->keyword->id,
+                'article_id' => $article->id,
+                'total_duration_seconds' => $totalDuration,
+                'ai_duration_seconds' => $aiDuration,
+            ]);
+
             return $article->fresh();
         } catch (\Exception $e) {
-            $this->keyword->update([
-                'status' => 'failed',
-                'error_message' => $e->getMessage(),
+            $totalDuration = round(microtime(true) - $startTime, 2);
+            Log::error('[ArticleGeneration] Generation failed', [
+                'keyword_id' => $this->keyword->id,
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'duration_seconds' => $totalDuration,
+                'trace' => $e->getTraceAsString(),
             ]);
+
+            // Mark scheduled content as failed
+            $this->scheduledContent->failGeneration($e->getMessage());
+
             throw $e;
         }
     }
@@ -108,13 +193,36 @@ class ArticleGenerationService
     {
         $providerConfig = $this->buildProviderConfig();
 
+        $systemPrompt = $this->buildSystemPrompt();
+        $userPrompt = $this->buildUserPrompt();
+
+        Log::debug('[ArticleGeneration] Prepared prompts', [
+            'keyword_id' => $this->keyword->id,
+            'system_prompt_length' => strlen($systemPrompt),
+            'user_prompt_length' => strlen($userPrompt),
+            'provider' => $this->aiProvider->provider,
+            'model' => $this->aiProvider->model,
+            'has_custom_endpoint' => ! empty($this->aiProvider->api_endpoint),
+        ]);
+
+        Log::info('[ArticleGeneration] Sending request to AI provider...', [
+            'keyword_id' => $this->keyword->id,
+        ]);
+
         $this->lastResponse = $this->prism->text()
             ->using($this->aiProvider->provider, $this->aiProvider->model, $providerConfig)
             ->withClientOptions(['timeout' => 300]) // 5 minutes for long article generation
             ->withMaxTokens(16000) // Allow for longer articles (default is 2048)
-            ->withSystemPrompt($this->buildSystemPrompt())
-            ->withPrompt($this->buildUserPrompt())
+            ->withSystemPrompt($systemPrompt)
+            ->withPrompt($userPrompt)
             ->asText();
+
+        Log::info('[ArticleGeneration] Received response from AI provider', [
+            'keyword_id' => $this->keyword->id,
+            'response_length' => strlen($this->lastResponse->text ?? ''),
+            'prompt_tokens' => $this->lastResponse->usage->promptTokens ?? null,
+            'completion_tokens' => $this->lastResponse->usage->completionTokens ?? null,
+        ]);
 
         return $this->lastResponse->text;
     }
@@ -153,7 +261,7 @@ You are an expert content strategist and SEO specialist who creates comprehensiv
 2. **Specificity**: Replace vague statements with concrete details. Instead of "this can save time," say "this typically reduces processing time from 2 hours to 15 minutes"
 3. **Actionable Content**: Every major section should give readers something they can DO or APPLY
 4. **Original Insights**: Include perspectives, tips, or connections that aren't obvious from a basic Google search
-5. **Scannable Structure**: Use bullet points, numbered lists, tables, and clear headings so readers can find what they need
+5. **Scannable Structure**: Use bullet points, numbered lists, tables, blockquotes and clear headings so readers can find what they need
 
 ## CRITICAL WRITING RULES (ABSOLUTE REQUIREMENTS)
 
@@ -205,6 +313,23 @@ Example: If listing "invoice requirements" with name, description, and whether e
 - Pro tips, warnings, or common mistakes to avoid
 - Checklists or templates readers can use
 - Expert quotes or industry insights
+
+## Callout Boxes (REQUIRED)
+Include 1-3 blockquote callouts throughout the article to highlight important information. Use this format:
+
+> **Key Takeaway:** [Important insight the reader should remember]
+
+or
+
+> **Pro Tip:** [Actionable advice that gives readers an edge]
+
+Other callout types you can use:
+- **Important:** for critical information
+- **Warning:** for common mistakes or pitfalls
+- **Real-World Example:** for practical scenarios
+- **Expert Insight:** for industry wisdom
+
+Place these strategically after explaining a concept, to emphasize crucial points, or to share practical wisdom. They break up the text and make key information scannable.
 
 PROMPT;
 
@@ -563,7 +688,6 @@ PROMPT;
             'content_markdown' => $content,
             'word_count' => $wordCount,
             'reading_time_minutes' => $readingTime,
-            'status' => 'draft',
             'generation_metadata' => [
                 'provider' => $this->aiProvider->provider,
                 'model' => $this->aiProvider->model,
@@ -620,7 +744,7 @@ PROMPT;
             $imageProvider = $this->keyword->project->getEffectiveImageProvider();
 
             if (! $imageProvider) {
-                \Illuminate\Support\Facades\Log::warning('No image provider configured, skipping inline images', [
+                Log::warning('[ArticleGeneration] No image provider configured, skipping inline images', [
                     'article_id' => $article->id,
                 ]);
 
@@ -631,14 +755,14 @@ PROMPT;
 
             // Log any errors but don't fail the article generation
             if (! empty($result['errors'])) {
-                \Illuminate\Support\Facades\Log::warning('Some inline images failed to generate', [
+                Log::warning('[ArticleGeneration] Some inline images failed to generate', [
                     'article_id' => $article->id,
                     'errors' => $result['errors'],
                 ]);
             }
         } catch (\Exception $e) {
             // Log the error but don't fail the article generation
-            \Illuminate\Support\Facades\Log::error('Failed to process inline images', [
+            Log::error('[ArticleGeneration] Failed to process inline images', [
                 'article_id' => $article->id,
                 'error' => $e->getMessage(),
             ]);
@@ -651,7 +775,7 @@ PROMPT;
 
         // Check if user has YouTube API configured
         if (! $user->settings?->hasYouTubeApiKey()) {
-            \Illuminate\Support\Facades\Log::info('YouTube API key not configured, skipping video placeholders', [
+            Log::info('[ArticleGeneration] YouTube API key not configured, skipping video placeholders', [
                 'article_id' => $article->id,
             ]);
 
@@ -671,13 +795,13 @@ PROMPT;
                     'content_markdown' => $processedContent,
                 ]);
 
-                \Illuminate\Support\Facades\Log::info('Processed video placeholders in article', [
+                Log::info('[ArticleGeneration] Processed video placeholders in article', [
                     'article_id' => $article->id,
                 ]);
             }
         } catch (\Exception $e) {
             // Log the error but don't fail the article generation
-            \Illuminate\Support\Facades\Log::error('Failed to process video placeholders', [
+            Log::error('[ArticleGeneration] Failed to process video placeholders', [
                 'article_id' => $article->id,
                 'error' => $e->getMessage(),
             ]);

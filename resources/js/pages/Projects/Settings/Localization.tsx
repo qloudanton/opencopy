@@ -98,7 +98,8 @@ export default function Localization({ project }: Props) {
         put(`/projects/${project.id}/settings/localization`, {
             data: {
                 ...data,
-                target_region: data.target_region === 'global' ? null : data.target_region,
+                target_region:
+                    data.target_region === 'global' ? null : data.target_region,
             },
         });
     }

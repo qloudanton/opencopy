@@ -119,7 +119,7 @@ export default function Index({ projects }: Props) {
                                     <TooltipTrigger asChild>
                                         <Link
                                             href={`/projects/${project.id}/settings`}
-                                            className="absolute right-3 top-3 z-10 rounded-md p-1.5 text-muted-foreground opacity-0 transition-all hover:bg-muted hover:text-foreground group-hover:opacity-100"
+                                            className="absolute top-3 right-3 z-10 rounded-md p-1.5 text-muted-foreground opacity-0 transition-all group-hover:opacity-100 hover:bg-muted hover:text-foreground"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             <Settings className="h-4 w-4" />

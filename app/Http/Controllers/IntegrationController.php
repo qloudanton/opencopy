@@ -25,6 +25,7 @@ class IntegrationController extends Controller
         $this->authorize('view', $project);
 
         $integrations = $project->integrations()
+            ->withCount('publications')
             ->orderBy('name')
             ->get()
             ->map(fn (Integration $integration) => [
@@ -34,7 +35,7 @@ class IntegrationController extends Controller
                 'is_active' => $integration->is_active,
                 'has_credentials' => $integration->hasRequiredCredentials(),
                 'last_connected_at' => $integration->last_connected_at?->toIso8601String(),
-                'publications_count' => $integration->publications()->count(),
+                'publications_count' => $integration->publications_count,
                 'created_at' => $integration->created_at->toIso8601String(),
             ]);
 

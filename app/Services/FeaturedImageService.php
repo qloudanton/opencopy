@@ -435,11 +435,16 @@ class FeaturedImageService
         $subtitle = $titleParts['subtitle'];
 
         // Calculate font sizes (larger for impact)
-        $mainFontSize = $this->calculateMainFontSize($mainTitle);
-        $subtitleFontSize = (int) ($mainFontSize * 0.7); // Subtitle is 50% of main
+        // If no subtitle, use slightly smaller font to allow more lines
+        $mainFontSize = $subtitle
+            ? $this->calculateMainFontSize($mainTitle)
+            : $this->calculateMainFontSizeNoSubtitle($mainTitle);
+        $subtitleFontSize = (int) ($mainFontSize * 0.7); // Subtitle is 70% of main
 
         // Wrap text for center area
-        $wrappedMain = $this->wrapText($mainTitle, $mainFontSize, 2);
+        // If no subtitle, main title can use up to 4 lines; otherwise 2 lines each
+        $mainMaxLines = $subtitle ? 2 : 4;
+        $wrappedMain = $this->wrapText($mainTitle, $mainFontSize, $mainMaxLines);
         $wrappedSubtitle = $subtitle ? $this->wrapText($subtitle, $subtitleFontSize, 2) : '';
 
         // Calculate positions - centered text
@@ -520,6 +525,7 @@ class FeaturedImageService
 
     /**
      * Calculate font size for main title (larger for impact).
+     * Used when there IS a subtitle (main title limited to 2 lines).
      */
     protected function calculateMainFontSize(string $title): int
     {
@@ -536,6 +542,32 @@ class FeaturedImageService
         }
 
         return 100;
+    }
+
+    /**
+     * Calculate font size for main title when there's NO subtitle.
+     * Uses slightly smaller font to allow up to 4 lines of text.
+     */
+    protected function calculateMainFontSizeNoSubtitle(string $title): int
+    {
+        $length = strlen($title);
+
+        // For titles without subtitle, we allow 4 lines so we can use
+        // slightly smaller fonts for longer titles to ensure readability
+        if ($length <= 30) {
+            return 115; // Short titles still get large font
+        }
+        if ($length <= 50) {
+            return 100;
+        }
+        if ($length <= 80) {
+            return 90;
+        }
+        if ($length <= 120) {
+            return 80;
+        }
+
+        return 70; // Very long titles
     }
 
     /**

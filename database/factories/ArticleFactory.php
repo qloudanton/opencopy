@@ -43,7 +43,6 @@ class ArticleFactory extends Factory
                 'keyword_density' => fake()->randomFloat(2, 0.5, 2.5),
                 'heading_structure' => ['h1' => 1, 'h2' => 3, 'h3' => 5],
             ],
-            'status' => 'draft',
             'generation_metadata' => [
                 'tokens_used' => fake()->numberBetween(2000, 8000),
                 'model' => 'gpt-4o',
@@ -51,34 +50,6 @@ class ArticleFactory extends Factory
             ],
             'generated_at' => now(),
         ];
-    }
-
-    public function draft(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'draft',
-        ]);
-    }
-
-    public function review(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'review',
-        ]);
-    }
-
-    public function approved(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'approved',
-        ]);
-    }
-
-    public function published(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'status' => 'published',
-        ]);
     }
 
     public function withoutKeyword(): static

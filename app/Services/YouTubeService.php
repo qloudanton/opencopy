@@ -123,6 +123,23 @@ class YouTubeService
     }
 
     /**
+     * Get responsive HTML embed code for a video.
+     */
+    public function getEmbedHtml(string $videoId, ?string $title = null): string
+    {
+        $embedUrl = $this->getEmbedUrl($videoId);
+        $safeTitle = htmlspecialchars($title ?? 'YouTube video', ENT_QUOTES, 'UTF-8');
+
+        return <<<HTML
+
+<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%;">
+<iframe src="{$embedUrl}" title="{$safeTitle}" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+</div>
+
+HTML;
+    }
+
+    /**
      * Get the watch URL for a video.
      */
     public function getWatchUrl(string $videoId): string
@@ -184,10 +201,7 @@ class YouTubeService
                 if ($videoId) {
                     Log::info('Found YouTube video', ['videoId' => $videoId, 'title' => $title]);
 
-                    // Return a YouTube URL that TipTap's YouTube extension can handle
-                    $watchUrl = $this->getWatchUrl($videoId);
-
-                    return "\n\n{$watchUrl}\n\n";
+                    return $this->getEmbedHtml($videoId, $title);
                 }
             }
 

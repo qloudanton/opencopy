@@ -479,6 +479,35 @@ class ProjectController extends Controller
         return back()->with('success', 'Settings updated successfully.');
     }
 
+    // Settings: Publishing
+    public function settingsPublishing(Request $request, Project $project): Response
+    {
+        $this->authorize('update', $project);
+
+        return Inertia::render('Projects/Settings/Publishing', [
+            'project' => $project->only([
+                'id',
+                'name',
+                'auto_publish',
+                'skip_review',
+            ]),
+        ]);
+    }
+
+    public function updateSettingsPublishing(Request $request, Project $project): RedirectResponse
+    {
+        $this->authorize('update', $project);
+
+        $validated = $request->validate([
+            'auto_publish' => 'required|in:manual,immediate,scheduled',
+            'skip_review' => 'boolean',
+        ]);
+
+        $project->update($validated);
+
+        return back()->with('success', 'Publishing settings updated successfully.');
+    }
+
     // Settings: Danger Zone
     public function settingsDangerZone(Request $request, Project $project): Response
     {

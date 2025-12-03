@@ -3,10 +3,12 @@ import {
     show as showArticle,
 } from '@/actions/App/Http/Controllers/ArticleController';
 import {
-    bulkAdd,
+    autoSchedule,
     createKeyword,
     destroy,
+    generate,
     index,
+    publish,
     schedule,
     store,
     unschedule,
@@ -14,7 +16,6 @@ import {
 } from '@/actions/App/Http/Controllers/ContentPlannerController';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import {
     Dialog,
     DialogContent,
@@ -42,8 +43,8 @@ import {
 import AppLayout from '@/layouts/app-layout';
 import { axios } from '@/lib/axios';
 import {
-    getWordCountLabel,
     getToneLabel,
+    getWordCountLabel,
     toneOptions,
     wordCountOptions,
 } from '@/lib/content-options';
@@ -55,10 +56,13 @@ import {
     addMonths,
     addWeeks,
     format,
+    getDay,
+    isBefore,
     isSameDay,
     isSameMonth,
     isToday,
     parseISO,
+    startOfDay,
     startOfMonth,
     startOfWeek,
     subMonths,
@@ -66,7 +70,9 @@ import {
 } from 'date-fns';
 import {
     AlertCircle,
+    AlertTriangle,
     Calendar,
+    CalendarPlus,
     CheckCircle,
     ChevronLeft,
     ChevronRight,
@@ -76,12 +82,17 @@ import {
     GripVertical,
     HelpCircle,
     Inbox,
+    Loader2,
     Pencil,
     Plus,
+    Send,
+    Settings,
     Sparkles,
+    Webhook,
     X,
 } from 'lucide-react';
 import * as React from 'react';
+import { toast } from 'sonner';
 
 interface ContentType {
     value: string;
@@ -155,6 +166,12 @@ interface Stats {
     due_today: number;
 }
 
+interface Integration {
+    id: number;
+    type: string;
+    name: string;
+}
+
 interface Props {
     project: Project;
     scheduledContents: ScheduledContent[];
@@ -162,6 +179,7 @@ interface Props {
     allKeywords: Keyword[];
     unscheduledArticles: Article[];
     stats: Stats;
+    activeIntegrations: Integration[];
     view: 'month' | 'week' | 'day';
     currentDate: string;
     startDate: string;
@@ -173,9 +191,12 @@ interface Props {
 const statusColors: Record<string, string> = {
     backlog: 'bg-slate-100 border-slate-300 text-slate-700',
     scheduled: 'bg-blue-50 border-blue-300 text-blue-700',
+    queued: 'bg-amber-50 border-amber-300 text-amber-700',
     generating: 'bg-yellow-50 border-yellow-300 text-yellow-700',
+    enriching: 'bg-purple-50 border-purple-300 text-purple-700',
     in_review: 'bg-orange-50 border-orange-300 text-orange-700',
     approved: 'bg-green-50 border-green-300 text-green-700',
+    publishing_queued: 'bg-blue-50 border-blue-300 text-blue-700',
     published: 'bg-emerald-50 border-emerald-300 text-emerald-700',
     failed: 'bg-red-50 border-red-300 text-red-700',
 };
@@ -240,6 +261,7 @@ export default function ContentPlannerIndex({
     allKeywords,
     unscheduledArticles,
     stats,
+    activeIntegrations,
     view,
     currentDate,
     contentTypes,
@@ -269,6 +291,7 @@ export default function ContentPlannerIndex({
         tone: '',
         notes: '',
     });
+    const [isAutoScheduling, setIsAutoScheduling] = React.useState(false);
 
     const current = parseISO(currentDate);
 
@@ -309,6 +332,108 @@ export default function ContentPlannerIndex({
             if (!content.scheduled_date) return false;
             return isSameDay(parseISO(content.scheduled_date), date);
         });
+    };
+
+    // Check if content is overdue (scheduled date is in the past and not published)
+    const isOverdue = (content: ScheduledContent) => {
+        if (!content.scheduled_date) return false;
+        if (content.status === 'published') return false;
+        const scheduledDate = parseISO(content.scheduled_date);
+        return isBefore(scheduledDate, startOfDay(new Date()));
+    };
+
+    // Check if content is due today
+    const isDueToday = (content: ScheduledContent) => {
+        if (!content.scheduled_date) return false;
+        if (content.status === 'published') return false;
+        return isToday(parseISO(content.scheduled_date));
+    };
+
+    // Check if content can be generated (has keyword, no article yet, not already queued/generating)
+    const canGenerate = (content: ScheduledContent) => {
+        return (
+            content.keyword_id !== null &&
+            content.article_id === null &&
+            content.status !== 'queued' &&
+            content.status !== 'generating' &&
+            content.status !== 'published'
+        );
+    };
+
+    // Check if content is currently being generated, queued, enriching, or publishing
+    const isProcessing = (content: ScheduledContent) => {
+        return (
+            content.status === 'generating' ||
+            content.status === 'queued' ||
+            content.status === 'enriching' ||
+            content.status === 'publishing_queued'
+        );
+    };
+
+    // Get the appropriate label for the processing state
+    const getProcessingLabel = (content: ScheduledContent) => {
+        switch (content.status) {
+            case 'queued':
+                return 'Queued...';
+            case 'generating':
+                return 'Generating...';
+            case 'enriching':
+                return 'Enriching...';
+            case 'publishing_queued':
+                return 'Publishing...';
+            default:
+                return 'Processing...';
+        }
+    };
+
+    // Handle generate content
+    const handleGenerate = async (content: ScheduledContent) => {
+        try {
+            await axios.post(
+                generate.url({ project: project.id, content: content.id }),
+            );
+            router.reload({ only: ['scheduledContents', 'backlog', 'stats'] });
+        } catch (error: any) {
+            console.error('Error generating content:', error);
+            if (error.response?.data?.redirect) {
+                router.visit(error.response.data.redirect);
+            }
+        }
+    };
+
+    // Check if content can be published (has article, not already published or processing)
+    const canPublish = (content: ScheduledContent) => {
+        return (
+            content.article_id !== null &&
+            content.status !== 'published' &&
+            content.status !== 'generating' &&
+            content.status !== 'queued' &&
+            content.status !== 'enriching' &&
+            content.status !== 'publishing_queued'
+        );
+    };
+
+    // Handle publish content
+    const handlePublish = async (content: ScheduledContent) => {
+        try {
+            const response = await axios.post(
+                publish.url({ project: project.id, content: content.id }),
+            );
+            if (response.data?.message) {
+                toast.success(response.data.message);
+            }
+            router.reload({ only: ['scheduledContents', 'backlog', 'stats'] });
+        } catch (error: any) {
+            console.error('Error publishing content:', error);
+            if (error.response?.data?.redirect) {
+                toast.error(error.response?.data?.error || 'Failed to publish');
+                router.visit(error.response.data.redirect);
+            } else {
+                toast.error(
+                    error.response?.data?.error || 'Failed to publish article',
+                );
+            }
+        }
     };
 
     // Navigation
@@ -391,6 +516,12 @@ export default function ContentPlannerIndex({
         draggedOverRef.current = null;
 
         if (!draggedItem) return;
+
+        // Don't allow re-scheduling published content
+        if (draggedItem.status === 'published') {
+            setDraggedItem(null);
+            return;
+        }
 
         try {
             await axios.post(
@@ -549,22 +680,16 @@ export default function ContentPlannerIndex({
         }
     };
 
-    // Bulk add keywords
-    const [selectedKeywordIds, setSelectedKeywordIds] = React.useState<
-        number[]
-    >([]);
-    const [isBulkAddDialogOpen, setIsBulkAddDialogOpen] = React.useState(false);
-    const [bulkContentType, setBulkContentType] = React.useState('blog_post');
-
-    const handleBulkAdd = (e: React.FormEvent) => {
-        e.preventDefault();
-        router.post(bulkAdd.url({ project: project.id }), {
-            keyword_ids: selectedKeywordIds,
-            content_type: bulkContentType,
-            add_to_backlog: true,
-        });
-        setIsBulkAddDialogOpen(false);
-        setSelectedKeywordIds([]);
+    const handleAutoSchedule = async () => {
+        setIsAutoScheduling(true);
+        try {
+            await axios.post(autoSchedule.url({ project: project.id }));
+            router.reload({ only: ['scheduledContents', 'backlog', 'stats'] });
+        } catch (error) {
+            console.error('Error auto-scheduling content:', error);
+        } finally {
+            setIsAutoScheduling(false);
+        }
     };
 
     return (
@@ -573,30 +698,14 @@ export default function ContentPlannerIndex({
             <div className="flex h-full flex-1 flex-col">
                 {/* Header */}
                 <div className="flex flex-col gap-4 border-b p-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-4">
+                    <div>
                         <h1 className="text-xl font-semibold">
                             Content Planner
                         </h1>
-                        <div className="flex items-center gap-1 rounded-lg border p-1">
-                            <Button
-                                variant={
-                                    view === 'month' ? 'secondary' : 'ghost'
-                                }
-                                size="sm"
-                                onClick={() => changeView('month')}
-                            >
-                                Month
-                            </Button>
-                            <Button
-                                variant={
-                                    view === 'week' ? 'secondary' : 'ghost'
-                                }
-                                size="sm"
-                                onClick={() => changeView('week')}
-                            >
-                                Week
-                            </Button>
-                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            Plan and organize your content calendar. Drag items
+                            from the backlog to schedule them.
+                        </p>
                     </div>
 
                     <Button size="sm" onClick={() => openAddDialog()}>
@@ -606,26 +715,91 @@ export default function ContentPlannerIndex({
                 </div>
 
                 {/* Stats Bar */}
-                <div className="flex items-center gap-4 border-b px-4 py-2 text-sm">
-                    <span className="text-muted-foreground">
-                        <Inbox className="mr-1 inline h-4 w-4" />
-                        Backlog: {stats.backlog}
-                    </span>
-                    <span className="text-blue-600">
-                        <Calendar className="mr-1 inline h-4 w-4" />
-                        Scheduled: {stats.scheduled}
-                    </span>
-                    {stats.overdue > 0 && (
-                        <span className="text-red-600">
-                            <AlertCircle className="mr-1 inline h-4 w-4" />
-                            Overdue: {stats.overdue}
+                <div className="flex items-center justify-between border-b px-4 py-2 text-sm">
+                    <div className="flex items-center gap-4">
+                        <span className="text-muted-foreground">
+                            <Inbox className="mr-1 inline h-4 w-4" />
+                            Backlog: {stats.backlog}
                         </span>
-                    )}
-                    {stats.due_today > 0 && (
-                        <span className="text-orange-600">
-                            Due Today: {stats.due_today}
+                        <span className="text-blue-600">
+                            <Calendar className="mr-1 inline h-4 w-4" />
+                            Scheduled: {stats.scheduled}
                         </span>
-                    )}
+                        {stats.overdue > 0 && (
+                            <span className="text-red-600">
+                                <AlertCircle className="mr-1 inline h-4 w-4" />
+                                Overdue: {stats.overdue}
+                            </span>
+                        )}
+                        {stats.due_today > 0 && (
+                            <span className="text-orange-600">
+                                Due Today: {stats.due_today}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Publishing Destination Indicator */}
+                    <div className="flex items-center gap-2">
+                        {activeIntegrations.length === 0 ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Link
+                                        href={`/projects/${project.id}/integrations`}
+                                        className="flex items-center gap-1.5 text-amber-600 hover:text-amber-700"
+                                    >
+                                        <AlertTriangle className="h-4 w-4" />
+                                        <span>No publish destination</span>
+                                        <Settings className="h-3.5 w-3.5" />
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>
+                                        Configure an integration to
+                                        automatically publish articles
+                                    </p>
+                                </TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Link
+                                        href={`/projects/${project.id}/integrations`}
+                                        className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
+                                    >
+                                        <Webhook className="h-4 w-4" />
+                                        <span>
+                                            Publish to:{' '}
+                                            {activeIntegrations[0].name}
+                                            {activeIntegrations.length > 1 && (
+                                                <span className="ml-1 text-xs">
+                                                    +
+                                                    {activeIntegrations.length -
+                                                        1}{' '}
+                                                    more
+                                                </span>
+                                            )}
+                                        </span>
+                                        <Settings className="h-3.5 w-3.5" />
+                                    </Link>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p className="mb-1 font-medium">
+                                        Active integrations:
+                                    </p>
+                                    <ul className="text-xs">
+                                        {activeIntegrations.map(
+                                            (integration) => (
+                                                <li key={integration.id}>
+                                                    • {integration.name} (
+                                                    {integration.type})
+                                                </li>
+                                            ),
+                                        )}
+                                    </ul>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
                 </div>
 
                 {/* Calendar Navigation */}
@@ -658,7 +832,40 @@ export default function ContentPlannerIndex({
                             ? `Week of ${format(days[0], 'MMM d, yyyy')}`
                             : format(current, 'MMMM yyyy')}
                     </h2>
-                    <div className="w-24" />
+                    <div className="flex items-center gap-1 rounded-lg border p-1">
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={
+                                        view === 'month' ? 'secondary' : 'ghost'
+                                    }
+                                    size="sm"
+                                    onClick={() => changeView('month')}
+                                >
+                                    Month
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                View full month calendar
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    variant={
+                                        view === 'week' ? 'secondary' : 'ghost'
+                                    }
+                                    size="sm"
+                                    onClick={() => changeView('week')}
+                                >
+                                    Week
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                View current week with more detail
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                 </div>
 
                 {/* Main Content Area */}
@@ -690,7 +897,7 @@ export default function ContentPlannerIndex({
                             className={cn(
                                 'grid grid-cols-7',
                                 view === 'month'
-                                    ? 'auto-rows-[140px]'
+                                    ? 'auto-rows-[160px]'
                                     : 'auto-rows-[400px]',
                                 draggedItem && 'is-dragging',
                             )}
@@ -702,13 +909,22 @@ export default function ContentPlannerIndex({
                                     current,
                                 );
                                 const isCurrentDay = isToday(day);
+                                const dayOfWeek = getDay(day);
+                                const isWeekend =
+                                    dayOfWeek === 0 || dayOfWeek === 6;
 
                                 return (
                                     <div
                                         key={idx}
                                         className={cn(
                                             'day-cell border-r border-b p-1',
-                                            !isCurrentMonth && 'bg-muted/20',
+                                            isWeekend && 'bg-muted/40',
+                                            !isCurrentMonth &&
+                                                !isWeekend &&
+                                                'bg-muted/20',
+                                            !isCurrentMonth &&
+                                                isWeekend &&
+                                                'bg-muted/50',
                                         )}
                                         onDragOver={handleDragOver}
                                         onDragEnter={handleDragEnter}
@@ -726,14 +942,46 @@ export default function ContentPlannerIndex({
                                             >
                                                 {format(day, 'd')}
                                             </span>
-                                            <button
-                                                onClick={() =>
-                                                    openAddDialog(day)
-                                                }
-                                                className="rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-muted"
-                                            >
-                                                <Plus className="h-3 w-3" />
-                                            </button>
+                                            <div className="flex items-center gap-1">
+                                                {dayContent.length >
+                                                    (view === 'month'
+                                                        ? 1
+                                                        : 3) && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <button
+                                                                onClick={() =>
+                                                                    setDayViewDate(
+                                                                        day,
+                                                                    )
+                                                                }
+                                                                className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary hover:bg-primary/20"
+                                                            >
+                                                                +
+                                                                {dayContent.length -
+                                                                    (view ===
+                                                                    'month'
+                                                                        ? 1
+                                                                        : 3)}{' '}
+                                                                more
+                                                            </button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            Click to view all{' '}
+                                                            {dayContent.length}{' '}
+                                                            items
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                )}
+                                                <button
+                                                    onClick={() =>
+                                                        openAddDialog(day)
+                                                    }
+                                                    className="rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-muted"
+                                                >
+                                                    <Plus className="h-3 w-3" />
+                                                </button>
+                                            </div>
                                         </div>
 
                                         {/* Content items */}
@@ -750,12 +998,25 @@ export default function ContentPlannerIndex({
                                                     const isPublished =
                                                         content.status ===
                                                         'published';
+                                                    const contentIsOverdue =
+                                                        isOverdue(content);
+                                                    const contentIsDueToday =
+                                                        isDueToday(content);
+                                                    const showCreateButton =
+                                                        (contentIsOverdue ||
+                                                            contentIsDueToday) &&
+                                                        canGenerate(content);
+                                                    const showProcessingButton =
+                                                        isProcessing(content);
 
-                                                    return (
+                                                    const contentCard = (
                                                         <div
                                                             key={content.id}
-                                                            draggable
+                                                            draggable={
+                                                                !isPublished
+                                                            }
                                                             onDragStart={(e) =>
+                                                                !isPublished &&
                                                                 handleDragStart(
                                                                     e,
                                                                     content,
@@ -770,18 +1031,26 @@ export default function ContentPlannerIndex({
                                                                 )
                                                             }
                                                             className={cn(
-                                                                'group cursor-move rounded p-1.5 text-xs',
-                                                                statusColors[
-                                                                    content
-                                                                        .status
-                                                                ],
-                                                                hasArticle ||
-                                                                    isPublished
+                                                                'group rounded p-1.5 text-xs',
+                                                                isPublished
+                                                                    ? 'cursor-default'
+                                                                    : 'cursor-move',
+                                                                contentIsOverdue
+                                                                    ? 'border border-red-400 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-950/50 dark:text-red-200'
+                                                                    : statusColors[
+                                                                          content
+                                                                              .status
+                                                                      ],
+                                                                !contentIsOverdue &&
+                                                                    (hasArticle ||
+                                                                        isPublished)
                                                                     ? 'border'
-                                                                    : 'border border-dashed',
+                                                                    : !contentIsOverdue
+                                                                      ? 'border border-dashed'
+                                                                      : '',
                                                             )}
                                                         >
-                                                            <div className="mb-1 flex items-start justify-between gap-1">
+                                                            <div className="mb-3 flex items-start justify-between gap-1">
                                                                 <div className="flex items-start gap-1">
                                                                     {isPublished ? (
                                                                         <CheckCircle className="mt-0.5 h-3 w-3 shrink-0 text-emerald-600" />
@@ -790,7 +1059,7 @@ export default function ContentPlannerIndex({
                                                                     ) : (
                                                                         <Circle className="mt-0.5 h-3 w-3 shrink-0 text-muted-foreground" />
                                                                     )}
-                                                                    <span className="line-clamp-2 leading-tight font-medium">
+                                                                    <span className="line-clamp-3 leading-tight font-medium">
                                                                         {content.title ||
                                                                             content
                                                                                 .keyword
@@ -798,49 +1067,52 @@ export default function ContentPlannerIndex({
                                                                             'Untitled'}
                                                                     </span>
                                                                 </div>
-                                                                <div className="flex shrink-0 items-center opacity-0 group-hover:opacity-100">
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger
-                                                                            asChild
-                                                                        >
-                                                                            <button
-                                                                                onClick={() =>
-                                                                                    openEditDialog(
-                                                                                        content,
-                                                                                    )
-                                                                                }
-                                                                                className="rounded hover:bg-white/50"
+                                                                {/* Hide edit/unschedule buttons for published content */}
+                                                                {!isPublished && (
+                                                                    <div className="flex shrink-0 items-center opacity-0 group-hover:opacity-100">
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger
+                                                                                asChild
                                                                             >
-                                                                                <Pencil className="h-3 w-3" />
-                                                                            </button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            Edit
-                                                                            content
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                    <Tooltip>
-                                                                        <TooltipTrigger
-                                                                            asChild
-                                                                        >
-                                                                            <button
-                                                                                onClick={() =>
-                                                                                    handleUnschedule(
-                                                                                        content,
-                                                                                    )
-                                                                                }
-                                                                                className="rounded hover:bg-white/50"
+                                                                                <button
+                                                                                    onClick={() =>
+                                                                                        openEditDialog(
+                                                                                            content,
+                                                                                        )
+                                                                                    }
+                                                                                    className="rounded hover:bg-white/50"
+                                                                                >
+                                                                                    <Pencil className="h-3 w-3" />
+                                                                                </button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                Edit
+                                                                                content
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                        <Tooltip>
+                                                                            <TooltipTrigger
+                                                                                asChild
                                                                             >
-                                                                                <X className="h-3 w-3" />
-                                                                            </button>
-                                                                        </TooltipTrigger>
-                                                                        <TooltipContent>
-                                                                            Move
-                                                                            to
-                                                                            backlog
-                                                                        </TooltipContent>
-                                                                    </Tooltip>
-                                                                </div>
+                                                                                <button
+                                                                                    onClick={() =>
+                                                                                        handleUnschedule(
+                                                                                            content,
+                                                                                        )
+                                                                                    }
+                                                                                    className="rounded hover:bg-white/50"
+                                                                                >
+                                                                                    <X className="h-3 w-3" />
+                                                                                </button>
+                                                                            </TooltipTrigger>
+                                                                            <TooltipContent>
+                                                                                Move
+                                                                                to
+                                                                                backlog
+                                                                            </TooltipContent>
+                                                                        </Tooltip>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                             <div className="flex items-center gap-1.5">
                                                                 <Tooltip>
@@ -956,37 +1228,147 @@ export default function ContentPlannerIndex({
                                                                     </Tooltip>
                                                                 )}
                                                             </div>
+                                                            {showCreateButton && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <button
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                e.stopPropagation();
+                                                                                handleGenerate(
+                                                                                    content,
+                                                                                );
+                                                                            }}
+                                                                            className={cn(
+                                                                                'mt-1.5 flex w-full items-center justify-center gap-1 rounded px-2 py-1 text-[10px] font-medium transition-colors',
+                                                                                contentIsOverdue
+                                                                                    ? 'bg-red-600 text-white hover:bg-red-700'
+                                                                                    : 'bg-primary text-primary-foreground hover:bg-primary/90',
+                                                                            )}
+                                                                        >
+                                                                            <Sparkles className="h-3 w-3" />
+                                                                            Create
+                                                                            &amp;
+                                                                            Publish
+                                                                        </button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>
+                                                                            Generate
+                                                                            an
+                                                                            article
+                                                                            using
+                                                                            AI
+                                                                            and
+                                                                            automatically
+                                                                            publish
+                                                                            it
+                                                                            to
+                                                                            your
+                                                                            connected
+                                                                            integrations
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
+                                                            {showProcessingButton && (
+                                                                <button
+                                                                    disabled
+                                                                    className="mt-1.5 flex w-full cursor-not-allowed items-center justify-center gap-1 rounded bg-muted px-2 py-1 text-[10px] font-medium text-muted-foreground"
+                                                                >
+                                                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                                                    {getProcessingLabel(
+                                                                        content,
+                                                                    )}
+                                                                </button>
+                                                            )}
+                                                            {canPublish(
+                                                                content,
+                                                            ) && (
+                                                                <Tooltip>
+                                                                    <TooltipTrigger
+                                                                        asChild
+                                                                    >
+                                                                        <button
+                                                                            onClick={(
+                                                                                e,
+                                                                            ) => {
+                                                                                e.stopPropagation();
+                                                                                handlePublish(
+                                                                                    content,
+                                                                                );
+                                                                            }}
+                                                                            className="mt-1.5 flex w-full items-center justify-center gap-1 rounded bg-emerald-600 px-2 py-1 text-[10px] font-medium text-white transition-colors hover:bg-emerald-700"
+                                                                        >
+                                                                            <Send className="h-3 w-3" />
+                                                                            Publish
+                                                                        </button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent>
+                                                                        <p>
+                                                                            Publish
+                                                                            this
+                                                                            article
+                                                                            to
+                                                                            your
+                                                                            connected
+                                                                            integrations
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            )}
                                                         </div>
                                                     );
+
+                                                    if (contentIsOverdue) {
+                                                        return (
+                                                            <Tooltip
+                                                                key={content.id}
+                                                            >
+                                                                <TooltipTrigger
+                                                                    asChild
+                                                                >
+                                                                    {
+                                                                        contentCard
+                                                                    }
+                                                                </TooltipTrigger>
+                                                                <TooltipContent className="max-w-xs">
+                                                                    <div className="flex items-start gap-2">
+                                                                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
+                                                                        <div>
+                                                                            <p className="font-medium">
+                                                                                Overdue
+                                                                            </p>
+                                                                            <p className="text-xs text-muted-foreground">
+                                                                                This
+                                                                                content
+                                                                                was
+                                                                                scheduled
+                                                                                for{' '}
+                                                                                {format(
+                                                                                    parseISO(
+                                                                                        content.scheduled_date!,
+                                                                                    ),
+                                                                                    'MMM d, yyyy',
+                                                                                )}{' '}
+                                                                                but
+                                                                                hasn't
+                                                                                been
+                                                                                published
+                                                                                yet.
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        );
+                                                    }
+
+                                                    return contentCard;
                                                 })}
-                                            {dayContent.length >
-                                                (view === 'month' ? 1 : 3) && (
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <button
-                                                            onClick={() =>
-                                                                setDayViewDate(
-                                                                    day,
-                                                                )
-                                                            }
-                                                            className="px-1 text-left text-xs text-muted-foreground hover:text-foreground hover:underline"
-                                                        >
-                                                            +
-                                                            {dayContent.length -
-                                                                (view ===
-                                                                'month'
-                                                                    ? 1
-                                                                    : 3)}{' '}
-                                                            more
-                                                        </button>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        Click to view all{' '}
-                                                        {dayContent.length}{' '}
-                                                        items
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            )}
                                         </div>
                                     </div>
                                 );
@@ -1010,17 +1392,24 @@ export default function ContentPlannerIndex({
                                 )}
                             </h3>
                             <div className="flex items-center gap-1">
-                                {allKeywords.length > 0 && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                            setIsBulkAddDialogOpen(true)
-                                        }
-                                        title="Add keywords to backlog"
-                                    >
-                                        <Plus className="h-4 w-4" />
-                                    </Button>
+                                {backlog.length > 0 && (
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={handleAutoSchedule}
+                                                disabled={isAutoScheduling}
+                                            >
+                                                <CalendarPlus className="h-4 w-4" />
+                                            </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p>
+                                                Schedule all items (1 per day)
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 )}
                             </div>
                         </div>
@@ -1031,13 +1420,13 @@ export default function ContentPlannerIndex({
                                         <Inbox className="h-6 w-6 text-muted-foreground" />
                                     </div>
                                     <p className="mb-1 text-sm font-medium">
-                                        No items in backlog
+                                        Backlog is empty
                                     </p>
                                     <p className="mb-4 text-xs text-muted-foreground">
-                                        Add content ideas to schedule later
+                                        Add content ideas here to plan and
+                                        schedule later
                                     </p>
                                     <Button
-                                        variant="outline"
                                         size="sm"
                                         onClick={() => openAddDialog()}
                                     >
@@ -1256,6 +1645,16 @@ export default function ContentPlannerIndex({
                                             </div>
                                         );
                                     })}
+                                    {/* Add more section */}
+                                    <div className="mt-3 border-t pt-3">
+                                        <button
+                                            onClick={() => openAddDialog()}
+                                            className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed p-2 text-xs text-muted-foreground transition-colors hover:border-primary hover:bg-primary/5 hover:text-primary"
+                                        >
+                                            <Plus className="h-3.5 w-3.5" />
+                                            Add Content
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -1471,7 +1870,12 @@ export default function ContentPlannerIndex({
                                                     <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
                                                 </TooltipTrigger>
                                                 <TooltipContent className="max-w-xs">
-                                                    Determines the article structure and format. Each type is optimized for different goals like tutorials, comparisons, or listicles.
+                                                    Determines the article
+                                                    structure and format. Each
+                                                    type is optimized for
+                                                    different goals like
+                                                    tutorials, comparisons, or
+                                                    listicles.
                                                 </TooltipContent>
                                             </Tooltip>
                                         </div>
@@ -1559,20 +1963,15 @@ export default function ContentPlannerIndex({
                                                         </span>
                                                     </SelectItem>
                                                     <div className="my-1 border-t" />
-                                                    {toneOptions.map(
-                                                        (tone) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    tone.value
-                                                                }
-                                                                value={
-                                                                    tone.value
-                                                                }
-                                                            >
-                                                                {tone.label} - {tone.description}
-                                                            </SelectItem>
-                                                        ),
-                                                    )}
+                                                    {toneOptions.map((tone) => (
+                                                        <SelectItem
+                                                            key={tone.value}
+                                                            value={tone.value}
+                                                        >
+                                                            {tone.label} -{' '}
+                                                            {tone.description}
+                                                        </SelectItem>
+                                                    ))}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -1794,124 +2193,6 @@ export default function ContentPlannerIndex({
                 </DialogContent>
             </Dialog>
 
-            {/* Bulk Add Keywords Dialog */}
-            <Dialog
-                open={isBulkAddDialogOpen}
-                onOpenChange={setIsBulkAddDialogOpen}
-            >
-                <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Add Keywords to Planner</DialogTitle>
-                        <DialogDescription>
-                            Select keywords to add to your content backlog
-                        </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleBulkAdd}>
-                        <div className="grid gap-4 py-4">
-                            <div className="grid gap-2">
-                                <Label>Content Type for All</Label>
-                                <Select
-                                    value={bulkContentType}
-                                    onValueChange={setBulkContentType}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {contentTypes.map((type) => (
-                                            <SelectItem
-                                                key={type.value}
-                                                value={type.value}
-                                            >
-                                                {type.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label>Select Keywords</Label>
-                                <Card>
-                                    <CardContent className="max-h-64 overflow-auto p-2">
-                                        {allKeywords.map((keyword) => (
-                                            <label
-                                                key={keyword.id}
-                                                className="flex cursor-pointer items-center justify-between gap-2 rounded p-2 hover:bg-muted"
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedKeywordIds.includes(
-                                                            keyword.id,
-                                                        )}
-                                                        onChange={(e) => {
-                                                            if (
-                                                                e.target.checked
-                                                            ) {
-                                                                setSelectedKeywordIds(
-                                                                    [
-                                                                        ...selectedKeywordIds,
-                                                                        keyword.id,
-                                                                    ],
-                                                                );
-                                                            } else {
-                                                                setSelectedKeywordIds(
-                                                                    selectedKeywordIds.filter(
-                                                                        (id) =>
-                                                                            id !==
-                                                                            keyword.id,
-                                                                    ),
-                                                                );
-                                                            }
-                                                        }}
-                                                        className="rounded"
-                                                    />
-                                                    <span className="text-sm">
-                                                        {keyword.keyword}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                                    {(keyword.articles_count ??
-                                                        0) > 0 && (
-                                                        <span>
-                                                            {
-                                                                keyword.articles_count
-                                                            }{' '}
-                                                            article
-                                                            {(keyword.articles_count ??
-                                                                0) !== 1
-                                                                ? 's'
-                                                                : ''}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </label>
-                                        ))}
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setIsBulkAddDialogOpen(false)}
-                            >
-                                Cancel
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={selectedKeywordIds.length === 0}
-                            >
-                                Add {selectedKeywordIds.length} Keyword
-                                {selectedKeywordIds.length !== 1 ? 's' : ''}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </DialogContent>
-            </Dialog>
-
             {/* Edit Content Dialog */}
             <Dialog
                 open={!!editingContent}
@@ -2093,6 +2374,24 @@ export default function ContentPlannerIndex({
                                                                     Edit Article
                                                                 </Link>
                                                             </Button>
+                                                            {editingContent &&
+                                                                canPublish(
+                                                                    editingContent,
+                                                                ) && (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        className="bg-emerald-600 hover:bg-emerald-700"
+                                                                        onClick={() => {
+                                                                            handlePublish(
+                                                                                editingContent,
+                                                                            );
+                                                                            closeEditDialog();
+                                                                        }}
+                                                                    >
+                                                                        <Send className="mr-1.5 h-3.5 w-3.5" />
+                                                                        Publish
+                                                                    </Button>
+                                                                )}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -2247,7 +2546,12 @@ export default function ContentPlannerIndex({
                                                         <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
                                                     </TooltipTrigger>
                                                     <TooltipContent className="max-w-xs">
-                                                        Determines the article structure and format. Each type is optimized for different goals like tutorials, comparisons, or listicles.
+                                                        Determines the article
+                                                        structure and format.
+                                                        Each type is optimized
+                                                        for different goals like
+                                                        tutorials, comparisons,
+                                                        or listicles.
                                                     </TooltipContent>
                                                 </Tooltip>
                                             </div>
@@ -2349,7 +2653,11 @@ export default function ContentPlannerIndex({
                                                                         tone.value
                                                                     }
                                                                 >
-                                                                    {tone.label} - {tone.description}
+                                                                    {tone.label}{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        tone.description
+                                                                    }
                                                                 </SelectItem>
                                                             ),
                                                         )}
@@ -2513,33 +2821,61 @@ export default function ContentPlannerIndex({
                                 const hasArticle = content.article_id !== null;
                                 const isPublished =
                                     content.status === 'published';
+                                const contentIsOverdue = isOverdue(content);
+                                const contentIsDueToday = isDueToday(content);
+                                const showCreateButton =
+                                    (contentIsOverdue || contentIsDueToday) &&
+                                    canGenerate(content);
+                                const showProcessingButton =
+                                    isProcessing(content);
 
                                 return (
                                     <div
                                         key={content.id}
                                         className={cn(
                                             'group flex items-start justify-between gap-3 rounded-lg p-3',
-                                            statusColors[content.status],
-                                            hasArticle || isPublished
+                                            contentIsOverdue
+                                                ? 'border border-red-400 bg-red-50 text-red-900 dark:border-red-600 dark:bg-red-950/50 dark:text-red-200'
+                                                : statusColors[content.status],
+                                            !contentIsOverdue &&
+                                                (hasArticle || isPublished)
                                                 ? 'border'
-                                                : 'border border-dashed',
+                                                : !contentIsOverdue
+                                                  ? 'border border-dashed'
+                                                  : '',
                                         )}
                                     >
                                         <div className="min-w-0 flex-1">
                                             <div className="flex items-start gap-2">
-                                                {isPublished ? (
+                                                {contentIsOverdue ? (
+                                                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                                                ) : isPublished ? (
                                                     <CheckCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
                                                 ) : hasArticle ? (
                                                     <FileText className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
                                                 ) : (
                                                     <Circle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                                 )}
-                                                <p className="leading-tight font-medium">
-                                                    {content.title ||
-                                                        content.keyword
-                                                            ?.keyword ||
-                                                        'Untitled'}
-                                                </p>
+                                                <div>
+                                                    <p className="leading-tight font-medium">
+                                                        {content.title ||
+                                                            content.keyword
+                                                                ?.keyword ||
+                                                            'Untitled'}
+                                                    </p>
+                                                    {contentIsOverdue && (
+                                                        <p className="text-xs text-red-600 dark:text-red-400">
+                                                            Overdue - was
+                                                            scheduled for{' '}
+                                                            {format(
+                                                                parseISO(
+                                                                    content.scheduled_date!,
+                                                                ),
+                                                                'MMM d, yyyy',
+                                                            )}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div className="mt-2 flex flex-wrap items-center gap-2">
                                                 <Badge
@@ -2576,28 +2912,95 @@ export default function ContentPlannerIndex({
                                                 </p>
                                             )}
                                         </div>
-                                        <div className="flex shrink-0 items-center gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => {
-                                                    setDayViewDate(null);
-                                                    openEditDialog(content);
-                                                }}
-                                            >
-                                                <Pencil className="mr-1 h-3 w-3" />
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() =>
-                                                    handleUnschedule(content)
-                                                }
-                                            >
-                                                <X className="mr-1 h-3 w-3" />
-                                                Unschedule
-                                            </Button>
+                                        <div className="flex shrink-0 flex-col items-end gap-2">
+                                            {showCreateButton && (
+                                                <Button
+                                                    size="sm"
+                                                    className={cn(
+                                                        contentIsOverdue &&
+                                                            'bg-red-600 hover:bg-red-700',
+                                                    )}
+                                                    onClick={() =>
+                                                        handleGenerate(content)
+                                                    }
+                                                >
+                                                    <Sparkles className="mr-1 h-3 w-3" />
+                                                    Create & Publish
+                                                </Button>
+                                            )}
+                                            {showProcessingButton && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    disabled
+                                                >
+                                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                                    {getProcessingLabel(content)}
+                                                </Button>
+                                            )}
+                                            {canPublish(content) && (
+                                                <Button
+                                                    size="sm"
+                                                    className="bg-emerald-600 hover:bg-emerald-700"
+                                                    onClick={() =>
+                                                        handlePublish(content)
+                                                    }
+                                                >
+                                                    <Send className="mr-1 h-3 w-3" />
+                                                    Publish
+                                                </Button>
+                                            )}
+                                            {/* Show View Article button for published content with article */}
+                                            {isPublished && hasArticle && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={showArticle.url({
+                                                            project: project.id,
+                                                            article:
+                                                                content.article_id!,
+                                                        })}
+                                                    >
+                                                        <Eye className="mr-1 h-3 w-3" />
+                                                        View Article
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                            {/* Hide edit/unschedule buttons for published content */}
+                                            {!isPublished && (
+                                                <div className="flex items-center gap-1">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setDayViewDate(
+                                                                null,
+                                                            );
+                                                            openEditDialog(
+                                                                content,
+                                                            );
+                                                        }}
+                                                    >
+                                                        <Pencil className="mr-1 h-3 w-3" />
+                                                        Edit
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                            handleUnschedule(
+                                                                content,
+                                                            )
+                                                        }
+                                                    >
+                                                        <X className="mr-1 h-3 w-3" />
+                                                        Unschedule
+                                                    </Button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );

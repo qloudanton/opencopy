@@ -58,6 +58,13 @@ interface Article {
     created_at: string;
 }
 
+interface ScheduledContent {
+    id: number;
+    keyword_id: number;
+    status: string;
+    error_message: string | null;
+}
+
 interface Keyword {
     id: number;
     keyword: string;
@@ -65,12 +72,11 @@ interface Keyword {
     search_intent: string | null;
     difficulty: string | null;
     volume: string | null;
-    status: string;
-    error_message: string | null;
     articles_count: number;
     articles: Article[];
     created_at: string;
     updated_at: string;
+    scheduled_content: ScheduledContent | null;
 }
 
 interface Project {
@@ -102,7 +108,8 @@ function getStatusVariant(
 export default function Show({ project, keyword }: Props) {
     const [isGenerating, setIsGenerating] = useState(false);
     const isProcessing =
-        keyword.status === 'generating' || keyword.status === 'queued';
+        keyword.scheduled_content?.status === 'generating' ||
+        keyword.scheduled_content?.status === 'queued';
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
@@ -134,9 +141,15 @@ export default function Show({ project, keyword }: Props) {
                         <h1 className="text-2xl font-bold">
                             {keyword.keyword}
                         </h1>
-                        <Badge variant={getStatusVariant(keyword.status)}>
-                            {keyword.status}
-                        </Badge>
+                        {keyword.scheduled_content && (
+                            <Badge
+                                variant={getStatusVariant(
+                                    keyword.scheduled_content.status,
+                                )}
+                            >
+                                {keyword.scheduled_content.status}
+                            </Badge>
+                        )}
                     </div>
                     <div className="flex gap-2">
                         <Button asChild variant="outline">
@@ -153,7 +166,8 @@ export default function Show({ project, keyword }: Props) {
                             {isProcessing || isGenerating ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    {keyword.status === 'queued'
+                                    {keyword.scheduled_content?.status ===
+                                    'queued'
                                         ? 'Queued'
                                         : 'Generating...'}
                                 </>
@@ -167,11 +181,11 @@ export default function Show({ project, keyword }: Props) {
                     </div>
                 </div>
 
-                {keyword.error_message && (
+                {keyword.scheduled_content?.error_message && (
                     <Card className="border-destructive">
                         <CardContent className="pt-4">
                             <p className="text-sm text-destructive">
-                                {keyword.error_message}
+                                {keyword.scheduled_content.error_message}
                             </p>
                         </CardContent>
                     </Card>

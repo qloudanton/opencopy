@@ -18,7 +18,6 @@ it('requires authentication to update article', function () {
         'title' => 'Updated Title',
         'slug' => 'updated-slug',
         'content' => 'Updated content',
-        'status' => 'draft',
     ]);
 
     $response->assertRedirect('/login');
@@ -34,7 +33,6 @@ it('forbids updating articles of other users', function () {
         'title' => 'Updated Title',
         'slug' => 'updated-slug',
         'content' => 'Updated content',
-        'status' => 'draft',
     ]);
 
     $response->assertForbidden();
@@ -54,7 +52,6 @@ it('updates article with new slug', function () {
         'slug' => 'new-custom-slug',
         'meta_description' => 'Updated meta description',
         'content' => 'Updated content here',
-        'status' => 'review',
     ]);
 
     $response->assertRedirect("/projects/{$project->id}/articles/{$article->id}");
@@ -63,7 +60,6 @@ it('updates article with new slug', function () {
     expect($article->title)->toBe('Updated Title');
     expect($article->slug)->toBe('new-custom-slug');
     expect($article->meta_description)->toBe('Updated meta description');
-    expect($article->status)->toBe('review');
 });
 
 it('validates slug format', function () {
@@ -75,7 +71,6 @@ it('validates slug format', function () {
         'title' => 'Test Title',
         'slug' => 'Invalid Slug With Spaces!',
         'content' => 'Test content',
-        'status' => 'draft',
     ]);
 
     $response->assertSessionHasErrors(['slug']);
@@ -97,7 +92,6 @@ it('validates slug uniqueness', function () {
         'title' => 'Test Title',
         'slug' => 'existing-slug',
         'content' => 'Test content',
-        'status' => 'draft',
     ]);
 
     $response->assertSessionHasErrors(['slug']);
@@ -115,7 +109,6 @@ it('allows keeping the same slug on update', function () {
         'title' => 'Updated Title',
         'slug' => 'my-slug',
         'content' => 'Updated content',
-        'status' => 'draft',
     ]);
 
     $response->assertRedirect("/projects/{$project->id}/articles/{$article->id}");

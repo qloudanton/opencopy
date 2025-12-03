@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\EnrichArticleJob;
 use App\Jobs\GenerateFeaturedImageJob;
 use App\Jobs\PublishToIntegrationJob;
 use App\Models\Article;
@@ -27,7 +28,7 @@ class ArticleController extends Controller
         $this->authorize('view', $project);
 
         $articles = $project->articles()
-            ->with('keyword:id,keyword')
+            ->with(['keyword:id,keyword', 'scheduledContent:id,article_id,status'])
             ->withSum('usageLogs', 'estimated_cost')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -79,6 +80,9 @@ class ArticleController extends Controller
                 'created_at' => $pub->created_at->toIso8601String(),
             ]);
 
+        // Get scheduled content if exists
+        $scheduledContent = $article->scheduledContent;
+
         return Inertia::render('Articles/Show', [
             'project' => $project,
             'article' => $article,
@@ -91,6 +95,12 @@ class ArticleController extends Controller
             'costBreakdown' => $costBreakdown,
             'integrations' => $integrations,
             'publications' => $publications,
+            'scheduledContent' => $scheduledContent ? [
+                'id' => $scheduledContent->id,
+                'status' => $scheduledContent->status->value,
+                'scheduled_date' => $scheduledContent->scheduled_date?->toDateString(),
+                'scheduled_time' => $scheduledContent->scheduled_time,
+            ] : null,
         ]);
     }
 
@@ -130,7 +140,6 @@ class ArticleController extends Controller
             'slug' => ['required', 'string', 'max:255', 'regex:/^[a-z0-9]+(?:-[a-z0-9]+)*$/', 'unique:articles,slug,'.$article->id],
             'meta_description' => 'nullable|string|max:255',
             'content' => 'required|string',
-            'status' => 'required|in:draft,review,published',
         ]);
 
         $validated['content_markdown'] = $validated['content'];
@@ -545,6 +554,53 @@ class ArticleController extends Controller
         return response()->json([
             'videos' => $formattedVideos,
         ]);
+    }
+
+    public function enrich(
+        Request $request,
+        Project $project,
+        Article $article
+    ): JsonResponse {
+        $this->authorize('update', $project);
+        $this->ensureArticleBelongsToProject($article, $project);
+
+        // Set initial status and dispatch job
+        $cacheKey = EnrichArticleJob::statusCacheKey($article->id);
+        Cache::put($cacheKey, [
+            'status' => 'queued',
+            'queued_at' => now()->toIso8601String(),
+        ], now()->addMinutes(30));
+
+        EnrichArticleJob::dispatch($article);
+
+        return response()->json([
+            'success' => true,
+            'status' => 'queued',
+            'message' => 'Content enrichment started',
+        ]);
+    }
+
+    public function enrichmentStatus(Project $project, Article $article): JsonResponse
+    {
+        $this->authorize('view', $project);
+        $this->ensureArticleBelongsToProject($article, $project);
+
+        $cacheKey = EnrichArticleJob::statusCacheKey($article->id);
+        $status = Cache::get($cacheKey);
+
+        if (! $status) {
+            return response()->json([
+                'status' => 'idle',
+            ]);
+        }
+
+        // If completed, include updated content
+        if ($status['status'] === 'completed') {
+            $article->refresh();
+            $status['content'] = $article->content_markdown ?? $article->content;
+        }
+
+        return response()->json($status);
     }
 
     protected function ensureArticleBelongsToProject(Article $article, Project $project): void

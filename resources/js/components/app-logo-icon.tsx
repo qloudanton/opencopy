@@ -11,6 +11,7 @@ export default function AppLogoIcon(props: SVGAttributes<SVGElement>) {
         // </svg>
 
         <svg
+            {...props}
             data-logo="logo"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 51 41"

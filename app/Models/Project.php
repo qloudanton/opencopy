@@ -57,6 +57,9 @@ class Project extends Model
         'auto_generate_days_ahead',
         'calendar_view',
         'calendar_start_day',
+        // Auto-publish settings
+        'auto_publish',
+        'skip_review',
     ];
 
     protected function casts(): array
@@ -83,6 +86,8 @@ class Project extends Model
             'posts_per_week' => 'integer',
             'auto_generate_enabled' => 'boolean',
             'auto_generate_days_ahead' => 'integer',
+            // Auto-publish casts
+            'skip_review' => 'boolean',
         ];
     }
 

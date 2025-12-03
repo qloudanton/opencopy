@@ -4,6 +4,7 @@ use App\Jobs\GenerateArticleJob;
 use App\Models\AiProvider;
 use App\Models\Keyword;
 use App\Models\Project;
+use App\Models\ScheduledContent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -267,17 +268,22 @@ it('can queue article generation for own keyword', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
-    $keyword = Keyword::factory()->for($project)->pending()->create();
+    $keyword = Keyword::factory()->for($project)->create();
 
     $this->actingAs($user)
         ->post(route('projects.keywords.generate', [$project, $keyword]))
         ->assertRedirect();
 
     Queue::assertPushed(GenerateArticleJob::class, function ($job) use ($keyword) {
-        return $job->keyword->id === $keyword->id;
+        return $job->scheduledContent->keyword_id === $keyword->id;
     });
 
-    expect($keyword->fresh()->status)->toBe('queued');
+    // Verify a ScheduledContent was created with queued status
+    $this->assertDatabaseHas('scheduled_contents', [
+        'keyword_id' => $keyword->id,
+        'project_id' => $project->id,
+        'status' => 'queued',
+    ]);
 });
 
 it('cannot queue generation for another users keyword', function () {
@@ -300,23 +306,11 @@ it('cannot queue generation when keyword is already generating', function () {
     $user = User::factory()->create();
     $project = Project::factory()->for($user)->create();
     AiProvider::factory()->for($user)->default()->create();
-    $keyword = Keyword::factory()->for($project)->generating()->create();
-
-    $this->actingAs($user)
-        ->post(route('projects.keywords.generate', [$project, $keyword]))
-        ->assertRedirect()
-        ->assertSessionHas('error');
-
-    Queue::assertNothingPushed();
-});
-
-it('cannot queue generation when keyword is queued', function () {
-    Queue::fake();
-
-    $user = User::factory()->create();
-    $project = Project::factory()->for($user)->create();
-    AiProvider::factory()->for($user)->default()->create();
-    $keyword = Keyword::factory()->for($project)->queued()->create();
+    $keyword = Keyword::factory()->for($project)->create();
+    ScheduledContent::factory()
+        ->withKeyword($keyword)
+        ->generating()
+        ->create();
 
     $this->actingAs($user)
         ->post(route('projects.keywords.generate', [$project, $keyword]))

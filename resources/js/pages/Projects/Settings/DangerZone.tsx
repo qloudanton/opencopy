@@ -83,7 +83,9 @@ export default function DangerZone({ project }: Props) {
                                     </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogCancel>
+                                        Cancel
+                                    </AlertDialogCancel>
                                     <AlertDialogAction
                                         onClick={handleDelete}
                                         className="bg-destructive text-white hover:bg-destructive/90"

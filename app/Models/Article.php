@@ -32,7 +32,6 @@ class Article extends Model implements PublishableContract
         'reading_time_minutes',
         'seo_score',
         'seo_analysis',
-        'status',
         'generation_metadata',
         'generated_at',
     ];
@@ -144,16 +143,6 @@ class Article extends Model implements PublishableContract
         return (float) $this->usageLogs()->sum('estimated_cost');
     }
 
-    public function isDraft(): bool
-    {
-        return $this->status === 'draft';
-    }
-
-    public function isPublished(): bool
-    {
-        return $this->status === 'published';
-    }
-
     // =========================================================================
     // PublishableContract Implementation
     // =========================================================================
@@ -237,7 +226,7 @@ class Article extends Model implements PublishableContract
             'content_markdown' => $this->getPublishableMarkdown(),
             'meta_description' => $this->getPublishableMetaDescription(),
             'excerpt' => $this->getPublishableExcerpt(),
-            'featured_image_url' => $this->getPublishableFeaturedImageUrl(),
+            'image_url' => $this->getPublishableFeaturedImageUrl(),
             'tags' => $this->getPublishableTags(),
             'created_at' => $this->getPublishableCreatedAt()->format('c'),
             'word_count' => $this->word_count,

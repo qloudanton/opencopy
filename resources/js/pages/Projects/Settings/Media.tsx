@@ -139,7 +139,10 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                     checked={data.include_youtube_videos}
                                     disabled={!hasYouTubeApiKey}
                                     onCheckedChange={(checked) =>
-                                        setData('include_youtube_videos', checked)
+                                        setData(
+                                            'include_youtube_videos',
+                                            checked,
+                                        )
                                     }
                                 />
                             </div>
@@ -154,7 +157,9 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                 </div>
                                 <Switch
                                     id="include_infographic_placeholders"
-                                    checked={data.include_infographic_placeholders}
+                                    checked={
+                                        data.include_infographic_placeholders
+                                    }
                                     onCheckedChange={(checked) => {
                                         setData(
                                             'include_infographic_placeholders',
@@ -162,7 +167,10 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                         );
                                         // If disabling placeholders, also disable inline image generation
                                         if (!checked) {
-                                            setData('generate_inline_images', false);
+                                            setData(
+                                                'generate_inline_images',
+                                                false,
+                                            );
                                         }
                                     }}
                                 />
@@ -194,8 +202,8 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                     />
                                     {!data.include_infographic_placeholders && (
                                         <p className="text-xs text-muted-foreground">
-                                            Enable Image Placeholders above to use
-                                            this feature
+                                            Enable Image Placeholders above to
+                                            use this feature
                                         </p>
                                     )}
                                 </div>
@@ -206,7 +214,10 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                         !data.include_infographic_placeholders
                                     }
                                     onCheckedChange={(checked) =>
-                                        setData('generate_inline_images', checked)
+                                        setData(
+                                            'generate_inline_images',
+                                            checked,
+                                        )
                                     }
                                 />
                             </div>
@@ -223,7 +234,10 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                     id="generate_featured_image"
                                     checked={data.generate_featured_image}
                                     onCheckedChange={(checked) =>
-                                        setData('generate_featured_image', checked)
+                                        setData(
+                                            'generate_featured_image',
+                                            checked,
+                                        )
                                     }
                                 />
                             </div>
@@ -252,7 +266,8 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                                 id="brand_color"
                                                 type="color"
                                                 value={
-                                                    data.brand_color || '#3b82f6'
+                                                    data.brand_color ||
+                                                    '#3b82f6'
                                                 }
                                                 onChange={(e) =>
                                                     setData(
@@ -275,7 +290,9 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                                 maxLength={7}
                                             />
                                         </div>
-                                        <InputError message={errors.brand_color} />
+                                        <InputError
+                                            message={errors.brand_color}
+                                        />
                                     </div>
 
                                     <div className="space-y-2">
@@ -314,7 +331,9 @@ export default function Media({ project, hasYouTubeApiKey }: Props) {
                                                 )}
                                             </SelectContent>
                                         </Select>
-                                        <InputError message={errors.image_style} />
+                                        <InputError
+                                            message={errors.image_style}
+                                        />
                                     </div>
                                 </div>
                             </div>

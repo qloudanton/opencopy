@@ -111,10 +111,19 @@ export function ContentEditor({
         },
     });
 
-    // Update content when prop changes (e.g., from external source)
+    // Update content when prop changes (e.g., from external source like enrichment)
     useEffect(() => {
-        if (editor && content !== editor.storage.markdown?.getMarkdown()) {
-            editor.commands.setContent(content);
+        if (editor) {
+            const currentMarkdown =
+                editor.storage.markdown?.getMarkdown() || '';
+            // Only update if content actually changed (avoiding infinite loops)
+            if (content !== currentMarkdown) {
+                // Use setContent with emitUpdate: false to avoid triggering onChange
+                // The tiptap-markdown extension will parse the markdown automatically
+                editor.commands.setContent(content, {
+                    emitUpdate: false,
+                });
+            }
         }
     }, [content, editor]);
 

@@ -688,6 +688,7 @@ describe('project creation with keywords', function () {
         $response = $this->actingAs($this->user)
             ->post('/projects', [
                 'name' => 'Test Project',
+                'website_url' => 'https://test-project.com',
                 'description' => 'A test project description',
                 'keywords' => [
                     ['keyword' => 'test keyword one', 'search_intent' => 'informational'],
@@ -701,14 +702,14 @@ describe('project creation with keywords', function () {
         expect($project)->not->toBeNull()
             ->and($project->keywords)->toHaveCount(2)
             ->and($project->keywords->first()->keyword)->toBe('test keyword one')
-            ->and($project->keywords->first()->search_intent)->toBe('informational')
-            ->and($project->keywords->first()->status)->toBe('pending');
+            ->and($project->keywords->first()->search_intent)->toBe('informational');
     });
 
     it('creates project without keywords', function () {
         $response = $this->actingAs($this->user)
             ->post('/projects', [
                 'name' => 'Project Without Keywords',
+                'website_url' => 'https://project-without-keywords.com',
                 'description' => 'A test project description',
             ]);
 
@@ -723,6 +724,7 @@ describe('project creation with keywords', function () {
         $response = $this->actingAs($this->user)
             ->post('/projects', [
                 'name' => 'Project With Default Intent',
+                'website_url' => 'https://project-with-default-intent.com',
                 'keywords' => [
                     ['keyword' => 'keyword without intent'],
                 ],

@@ -168,7 +168,9 @@ export default function InternalLinking({ project, pageStats }: Props) {
                                         0-10 links (recommended: 2-5)
                                     </p>
                                     <InputError
-                                        message={errors.internal_links_per_article}
+                                        message={
+                                            errors.internal_links_per_article
+                                        }
                                     />
                                 </div>
                             </div>
@@ -204,7 +206,8 @@ export default function InternalLinking({ project, pageStats }: Props) {
                                             variant="outline"
                                             onClick={handleSyncSitemap}
                                             disabled={
-                                                syncingPages || !data.sitemap_url
+                                                syncingPages ||
+                                                !data.sitemap_url
                                             }
                                         >
                                             {syncingPages ? (
@@ -212,7 +215,9 @@ export default function InternalLinking({ project, pageStats }: Props) {
                                             ) : (
                                                 <RefreshCw className="mr-2 h-4 w-4" />
                                             )}
-                                            {syncingPages ? 'Syncing...' : 'Sync'}
+                                            {syncingPages
+                                                ? 'Syncing...'
+                                                : 'Sync'}
                                         </Button>
                                     </div>
                                     <InputError message={errors.sitemap_url} />

@@ -11,6 +11,13 @@ import { Head, Link, router } from '@inertiajs/react';
 import { BarChart3, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
+interface ScheduledContent {
+    id: number;
+    keyword_id: number;
+    status: string;
+    error_message: string | null;
+}
+
 interface Keyword {
     id: number;
     keyword: string;
@@ -18,9 +25,9 @@ interface Keyword {
     search_intent: string | null;
     difficulty: string | null;
     volume: string | null;
-    status: string;
     articles_count: number;
     created_at: string;
+    scheduled_content: ScheduledContent | null;
 }
 
 interface Project {
@@ -189,8 +196,10 @@ export default function Index({ project, keywords }: Props) {
                                 <tbody>
                                     {keywords.data.map((keyword) => {
                                         const isProcessing =
-                                            keyword.status === 'generating' ||
-                                            keyword.status === 'queued';
+                                            keyword.scheduled_content?.status ===
+                                                'generating' ||
+                                            keyword.scheduled_content?.status ===
+                                                'queued';
                                         const isThisGenerating =
                                             generatingId === keyword.id;
                                         return (

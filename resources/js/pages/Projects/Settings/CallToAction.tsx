@@ -147,7 +147,10 @@ export default function CallToAction({ project }: Props) {
                                         id="cta_features"
                                         value={data.cta_features}
                                         onChange={(e) =>
-                                            setData('cta_features', e.target.value)
+                                            setData(
+                                                'cta_features',
+                                                e.target.value,
+                                            )
                                         }
                                         placeholder="e.g., AI-powered content generation, SEO optimization, WordPress integration, automatic internal linking"
                                         rows={3}
@@ -174,18 +177,22 @@ export default function CallToAction({ project }: Props) {
                                         placeholder="e.g., Try for free, Get started, Learn more"
                                         maxLength={100}
                                     />
-                                    <InputError message={errors.cta_action_text} />
+                                    <InputError
+                                        message={errors.cta_action_text}
+                                    />
                                 </div>
                             </div>
 
                             {/* Preview */}
                             {data.cta_product_name && data.cta_website_url && (
                                 <div className="space-y-2">
-                                    <h4 className="text-sm font-medium">Preview</h4>
+                                    <h4 className="text-sm font-medium">
+                                        Preview
+                                    </h4>
                                     <div className="rounded-lg bg-muted p-4 text-sm">
                                         <p className="text-muted-foreground">
-                                            Example of how your CTA might appear in
-                                            an article:
+                                            Example of how your CTA might appear
+                                            in an article:
                                         </p>
                                         <p className="mt-2 italic">
                                             "...tools like{' '}

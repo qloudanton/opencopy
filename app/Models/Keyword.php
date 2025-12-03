@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\ContentStatus;
 use App\Observers\KeywordObserver;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[ObservedBy(KeywordObserver::class)]
 class Keyword extends Model
@@ -25,9 +27,7 @@ class Keyword extends Model
         'target_word_count',
         'tone',
         'additional_instructions',
-        'status',
         'priority',
-        'error_message',
     ];
 
     protected function casts(): array
@@ -54,28 +54,70 @@ class Keyword extends Model
         return $this->hasMany(ScheduledContent::class);
     }
 
+    /**
+     * Get the primary scheduled content for this keyword (most recent).
+     */
+    public function scheduledContent(): HasOne
+    {
+        return $this->hasOne(ScheduledContent::class)->latestOfMany();
+    }
+
     public function latestArticle(): ?Article
     {
         return $this->articles()->latest()->first();
     }
 
+    /**
+     * Check if keyword has no article yet and is not being generated.
+     */
     public function isPending(): bool
     {
-        return $this->status === 'pending';
+        return ! $this->hasArticle() && ! $this->isGenerating();
     }
 
+    /**
+     * Check if keyword has at least one article.
+     */
+    public function hasArticle(): bool
+    {
+        return $this->articles()->exists();
+    }
+
+    /**
+     * Check if keyword has at least one article (alias for hasArticle).
+     */
     public function isCompleted(): bool
     {
-        return $this->status === 'completed';
+        return $this->hasArticle();
     }
 
+    /**
+     * Check if the latest generation attempt failed.
+     */
     public function isFailed(): bool
     {
-        return $this->status === 'failed';
+        $content = $this->scheduledContent;
+
+        return $content && $content->status === ContentStatus::Failed;
     }
 
+    /**
+     * Check if article generation is currently in progress (queued or generating).
+     */
     public function isGenerating(): bool
     {
-        return in_array($this->status, ['queued', 'generating']);
+        $content = $this->scheduledContent;
+
+        return $content && in_array($content->status, [ContentStatus::Queued, ContentStatus::Generating]);
+    }
+
+    /**
+     * Get the error message from the scheduled content if generation failed.
+     */
+    public function getErrorMessage(): ?string
+    {
+        $content = $this->scheduledContent;
+
+        return $content?->error_message;
     }
 }

@@ -13,12 +13,59 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { type SharedData } from '@/types';
+import { type Project, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import { Check, ChevronsUpDown, FolderKanban, Plus } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 const LAST_PROJECT_KEY = 'opencopy_last_project_id';
+
+function getDomainFromUrl(url: string | null): string | null {
+    if (!url) return null;
+    try {
+        const parsed = new URL(url);
+        return parsed.hostname;
+    } catch {
+        return null;
+    }
+}
+
+function ProjectIcon({
+    project,
+    size = 'md',
+}: {
+    project: Project;
+    size?: 'sm' | 'md';
+}) {
+    const [imgError, setImgError] = useState(false);
+    const domain = getDomainFromUrl(project.website_url);
+    const iconSize = size === 'sm' ? 'size-3.5' : 'size-4';
+    const containerSize = size === 'sm' ? 'size-6' : 'size-8';
+    const imgSize = size === 'sm' ? 16 : 20;
+
+    if (domain && !imgError) {
+        return (
+            <div
+                className={`flex ${containerSize} items-center justify-center overflow-hidden rounded-lg bg-muted`}
+            >
+                <img
+                    src={`https://www.google.com/s2/favicons?domain=${domain}&sz=32`}
+                    alt={`${project.name} favicon`}
+                    className="h-5 w-5 object-contain"
+                    onError={() => setImgError(true)}
+                />
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className={`flex ${containerSize} items-center justify-center rounded-lg ${size === 'sm' ? 'border' : 'bg-sidebar-primary text-sidebar-primary-foreground'}`}
+        >
+            <FolderKanban className={iconSize} />
+        </div>
+    );
+}
 
 export function NavProject() {
     const { projects, currentProject } = usePage<SharedData>().props;
@@ -41,9 +88,16 @@ export function NavProject() {
                             size="lg"
                             className="group data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                         >
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                <FolderKanban className="size-4" />
-                            </div>
+                            {currentProject ? (
+                                <ProjectIcon
+                                    project={currentProject}
+                                    size="md"
+                                />
+                            ) : (
+                                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                                    <FolderKanban className="size-4" />
+                                </div>
+                            )}
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-semibold">
                                     {currentProject?.name ?? 'Select Project'}
@@ -88,9 +142,10 @@ export function NavProject() {
                                         href={`/projects/${project.id}`}
                                         className="flex cursor-pointer items-center gap-2"
                                     >
-                                        <div className="flex size-6 items-center justify-center rounded-sm border">
-                                            <FolderKanban className="size-3.5 shrink-0" />
-                                        </div>
+                                        <ProjectIcon
+                                            project={project}
+                                            size="sm"
+                                        />
                                         <span className="flex-1 truncate">
                                             {project.name}
                                         </span>

@@ -13,7 +13,12 @@ interface FieldLabelProps {
     icon?: LucideIcon;
 }
 
-export default function FieldLabel({ htmlFor, label, tooltip, icon: Icon }: FieldLabelProps) {
+export default function FieldLabel({
+    htmlFor,
+    label,
+    tooltip,
+    icon: Icon,
+}: FieldLabelProps) {
     return (
         <div className="flex items-center gap-1.5">
             <Label htmlFor={htmlFor} className="flex items-center gap-2">

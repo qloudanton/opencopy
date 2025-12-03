@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\ContentStatus;
 use App\Enums\ContentType;
+use App\Jobs\PublishArticleJob;
 use App\Models\Project;
 use App\Models\ScheduledContent;
 use App\Services\ContentPlannerService;
@@ -64,6 +65,11 @@ class ContentPlannerController extends Controller
         // Get pipeline stats
         $stats = $this->getPipelineStats($project);
 
+        // Get active integrations for publishing indicator
+        $activeIntegrations = $project->integrations()
+            ->active()
+            ->get(['id', 'type', 'name']);
+
         return Inertia::render('ContentPlanner/Index', [
             'project' => $project,
             'scheduledContents' => $scheduledContents,
@@ -71,6 +77,7 @@ class ContentPlannerController extends Controller
             'allKeywords' => $allKeywords,
             'unscheduledArticles' => $unscheduledArticles,
             'stats' => $stats,
+            'activeIntegrations' => $activeIntegrations,
             'view' => $view,
             'currentDate' => $currentDate->toDateString(),
             'startDate' => $startDate->toDateString(),
@@ -364,25 +371,38 @@ class ContentPlannerController extends Controller
      */
     private function getPipelineStats(Project $project): array
     {
-        $contents = $project->scheduledContents();
+        // Get all status counts in a single query
+        $statusCounts = $project->scheduledContents()
+            ->selectRaw('status, count(*) as count')
+            ->groupBy('status')
+            ->pluck('count', 'status')
+            ->toArray();
+
+        // Get overdue count (separate query needed due to complex conditions)
+        $overdue = $project->scheduledContents()
+            ->where('status', '!=', ContentStatus::Published)
+            ->whereNotNull('scheduled_date')
+            ->whereDate('scheduled_date', '<', now())
+            ->count();
+
+        // Get due today count
+        $dueToday = $project->scheduledContents()
+            ->whereDate('scheduled_date', now())
+            ->count();
+
+        $total = array_sum($statusCounts);
 
         return [
-            'total' => $contents->count(),
-            'backlog' => $contents->clone()->inBacklog()->count(),
-            'scheduled' => $contents->clone()->scheduled()->count(),
-            'generating' => $contents->clone()->where('status', ContentStatus::Generating)->count(),
-            'in_review' => $contents->clone()->inReview()->count(),
-            'approved' => $contents->clone()->approved()->count(),
-            'published' => $contents->clone()->where('status', ContentStatus::Published)->count(),
-            'failed' => $contents->clone()->where('status', ContentStatus::Failed)->count(),
-            'overdue' => $contents->clone()
-                ->where('status', '!=', ContentStatus::Published)
-                ->whereNotNull('scheduled_date')
-                ->whereDate('scheduled_date', '<', now())
-                ->count(),
-            'due_today' => $contents->clone()
-                ->whereDate('scheduled_date', now())
-                ->count(),
+            'total' => $total,
+            'backlog' => $statusCounts[ContentStatus::Backlog->value] ?? 0,
+            'scheduled' => $statusCounts[ContentStatus::Scheduled->value] ?? 0,
+            'generating' => $statusCounts[ContentStatus::Generating->value] ?? 0,
+            'in_review' => $statusCounts[ContentStatus::InReview->value] ?? 0,
+            'approved' => $statusCounts[ContentStatus::Approved->value] ?? 0,
+            'published' => $statusCounts[ContentStatus::Published->value] ?? 0,
+            'failed' => $statusCounts[ContentStatus::Failed->value] ?? 0,
+            'overdue' => $overdue,
+            'due_today' => $dueToday,
         ];
     }
 
@@ -438,6 +458,171 @@ class ContentPlannerController extends Controller
                 'volume' => $keyword->volume,
                 'difficulty' => $keyword->difficulty,
             ],
+        ]);
+    }
+
+    /**
+     * Auto-schedule all backlog items to the calendar, one per day starting from the next available date.
+     */
+    public function autoSchedule(Request $request, Project $project): JsonResponse
+    {
+        $this->authorize('view', $project);
+
+        // Get all backlog items
+        $backlogItems = $project->scheduledContents()
+            ->inBacklog()
+            ->orderBy('position')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        if ($backlogItems->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No items in backlog to schedule.',
+            ]);
+        }
+
+        // Find the next available date (tomorrow or the day after the last scheduled content)
+        $lastScheduledDate = $project->scheduledContents()
+            ->whereNotNull('scheduled_date')
+            ->whereDate('scheduled_date', '>=', now()->startOfDay())
+            ->max('scheduled_date');
+
+        $startDate = $lastScheduledDate
+            ? Carbon::parse($lastScheduledDate)->addDay()
+            : now()->addDay();
+
+        // Schedule each backlog item one per day
+        $scheduled = 0;
+        $currentDate = $startDate->copy();
+
+        foreach ($backlogItems as $item) {
+            $item->schedule($currentDate->copy());
+            $currentDate->addDay();
+            $scheduled++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'scheduled' => $scheduled,
+            'message' => "{$scheduled} item".($scheduled !== 1 ? 's' : '').' scheduled starting from '.
+                $startDate->format('M j, Y'),
+        ]);
+    }
+
+    /**
+     * Generate article for a scheduled content item.
+     */
+    public function generate(Request $request, Project $project, ScheduledContent $content): JsonResponse
+    {
+        $this->authorize('view', $project);
+
+        if ($content->project_id !== $project->id) {
+            abort(404);
+        }
+
+        // Check if content already has an article
+        if ($content->article_id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'This content already has an article.',
+            ], 422);
+        }
+
+        // Check if content has a keyword
+        if (! $content->keyword_id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'This content has no keyword to generate from.',
+            ], 422);
+        }
+
+        $keyword = $content->keyword;
+
+        // Check if already queued or generating
+        if ($content->isQueued() || $content->isGenerating()) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Article generation is already in progress.',
+            ], 422);
+        }
+
+        // Check for AI provider
+        $hasProvider = $request->user()
+            ->aiProviders()
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $hasProvider) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Please configure an AI provider before generating articles.',
+                'redirect' => route('ai-providers.index'),
+            ], 422);
+        }
+
+        // Mark as queued before dispatching the job
+        $content->update(['status' => ContentStatus::Queued]);
+
+        // Dispatch the job with the ScheduledContent - ArticleGenerationService will update status
+        \App\Jobs\GenerateArticleJob::dispatch($content);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Article generation has been queued.',
+            'status' => 'queued',
+        ]);
+    }
+
+    /**
+     * Publish an article from the content planner.
+     */
+    public function publish(Request $request, Project $project, ScheduledContent $content): JsonResponse
+    {
+        $this->authorize('view', $project);
+
+        if ($content->project_id !== $project->id) {
+            abort(404);
+        }
+
+        // Check if content has an article
+        if (! $content->article_id) {
+            return response()->json([
+                'success' => false,
+                'error' => 'This content has no article to publish.',
+            ], 422);
+        }
+
+        // Check if already published
+        if ($content->status === ContentStatus::Published) {
+            return response()->json([
+                'success' => false,
+                'error' => 'This content is already published.',
+            ], 422);
+        }
+
+        // Check for active integrations
+        $hasIntegrations = $project->integrations()
+            ->where('is_active', true)
+            ->exists();
+
+        if (! $hasIntegrations) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Please configure at least one active integration before publishing.',
+                'redirect' => route('projects.integrations.index', $project),
+            ], 422);
+        }
+
+        // Mark as queued before dispatching the job
+        $content->update(['status' => ContentStatus::PublishingQueued]);
+
+        // Dispatch the publish job
+        PublishArticleJob::dispatch($content->article);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Article publishing has been queued.',
         ]);
     }
 }

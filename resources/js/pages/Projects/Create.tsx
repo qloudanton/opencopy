@@ -18,7 +18,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import {
     Tooltip,
@@ -190,7 +190,8 @@ export default function Create() {
     const [newAudience, setNewAudience] = React.useState('');
     const [newCompetitor, setNewCompetitor] = React.useState('');
     const [newKeyword, setNewKeyword] = React.useState('');
-    const [ctaProductNameEdited, setCtaProductNameEdited] = React.useState(false);
+    const [ctaProductNameEdited, setCtaProductNameEdited] =
+        React.useState(false);
     const [ctaWebsiteUrlEdited, setCtaWebsiteUrlEdited] = React.useState(false);
 
     // Auto-fill CTA fields based on project name and website URL
@@ -433,7 +434,10 @@ export default function Create() {
                     }));
                 setData((prev) => ({
                     ...prev,
-                    keywords: [...prev.keywords, ...newKeywords].slice(0, MAX_KEYWORDS),
+                    keywords: [...prev.keywords, ...newKeywords].slice(
+                        0,
+                        MAX_KEYWORDS,
+                    ),
                 }));
             } else {
                 setKeywordsError(
@@ -463,7 +467,9 @@ export default function Create() {
     }
 
     function toggleKeywordSuggestion(keyword: string) {
-        const suggestion = keywordSuggestions.find((k) => k.keyword === keyword);
+        const suggestion = keywordSuggestions.find(
+            (k) => k.keyword === keyword,
+        );
         if (!suggestion) return;
 
         const isCurrentlySelected = suggestion.selected;
@@ -587,15 +593,34 @@ export default function Create() {
                         {/* Custom Stepper with Arrows */}
                         <div className="mx-auto mb-8 flex max-w-2xl items-center justify-center">
                             {[
-                                { value: 'business', label: 'Business', canAccess: true },
-                                { value: 'audience', label: 'Audience', canAccess: canProceedToAudience() },
-                                { value: 'keywords', label: 'Keywords', canAccess: canProceedToKeywords() },
-                                { value: 'content', label: 'Content', canAccess: canProceedToContent() },
+                                {
+                                    value: 'business',
+                                    label: 'Business',
+                                    canAccess: true,
+                                },
+                                {
+                                    value: 'audience',
+                                    label: 'Audience',
+                                    canAccess: canProceedToAudience(),
+                                },
+                                {
+                                    value: 'keywords',
+                                    label: 'Keywords',
+                                    canAccess: canProceedToKeywords(),
+                                },
+                                {
+                                    value: 'content',
+                                    label: 'Content',
+                                    canAccess: canProceedToContent(),
+                                },
                             ].map((step, index, arr) => (
                                 <React.Fragment key={step.value}>
                                     <button
                                         type="button"
-                                        onClick={() => step.canAccess && setActiveTab(step.value)}
+                                        onClick={() =>
+                                            step.canAccess &&
+                                            setActiveTab(step.value)
+                                        }
                                         disabled={!step.canAccess}
                                         className={cn(
                                             'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all',
@@ -606,14 +631,16 @@ export default function Create() {
                                                   : 'cursor-not-allowed bg-muted/50 text-muted-foreground',
                                         )}
                                     >
-                                        <span className={cn(
-                                            'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
-                                            activeTab === step.value
-                                                ? 'bg-primary-foreground/20 text-primary-foreground'
-                                                : step.canAccess
-                                                  ? 'bg-foreground/10 text-foreground'
-                                                  : 'bg-muted-foreground/20 text-muted-foreground',
-                                        )}>
+                                        <span
+                                            className={cn(
+                                                'flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold',
+                                                activeTab === step.value
+                                                    ? 'bg-primary-foreground/20 text-primary-foreground'
+                                                    : step.canAccess
+                                                      ? 'bg-foreground/10 text-foreground'
+                                                      : 'bg-muted-foreground/20 text-muted-foreground',
+                                            )}
+                                        >
                                             {index + 1}
                                         </span>
                                         {step.label}
@@ -1476,7 +1503,11 @@ export default function Create() {
                                                                         tone.value
                                                                     }
                                                                 >
-                                                                    {tone.label} - {tone.description}
+                                                                    {tone.label}{' '}
+                                                                    -{' '}
+                                                                    {
+                                                                        tone.description
+                                                                    }
                                                                 </SelectItem>
                                                             ),
                                                         )}
@@ -1576,7 +1607,9 @@ export default function Create() {
                                                             data.cta_product_name
                                                         }
                                                         onChange={(e) => {
-                                                            setCtaProductNameEdited(true);
+                                                            setCtaProductNameEdited(
+                                                                true,
+                                                            );
                                                             setData(
                                                                 'cta_product_name',
                                                                 e.target.value,
@@ -1602,7 +1635,9 @@ export default function Create() {
                                                             data.cta_website_url
                                                         }
                                                         onChange={(e) => {
-                                                            setCtaWebsiteUrlEdited(true);
+                                                            setCtaWebsiteUrlEdited(
+                                                                true,
+                                                            );
                                                             setData(
                                                                 'cta_website_url',
                                                                 e.target.value,
@@ -1655,8 +1690,8 @@ export default function Create() {
                                         <p className="mt-1 text-blue-700 dark:text-blue-300">
                                             After creating your project, you can
                                             configure featured images, internal
-                                            linking, publishing integrations, and
-                                            more.
+                                            linking, publishing integrations,
+                                            and more.
                                         </p>
                                     </div>
                                 </div>

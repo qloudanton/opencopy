@@ -32,6 +32,7 @@ export interface Project {
     id: number;
     name: string;
     domain: string | null;
+    website_url: string | null;
 }
 
 export interface SharedData {

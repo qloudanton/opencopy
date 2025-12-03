@@ -24,7 +24,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     Route::get('keywords', [KeywordsController::class, 'index'])->name('keywords.index');
-    Route::resource('projects', ProjectController::class)->except(['edit']);
+    Route::resource('projects', ProjectController::class)->except(['edit', 'update']);
     Route::get('projects/{project}/edit', fn (Project $project) => redirect()->route('projects.settings', $project));
     Route::post('projects/analyze-website', [ProjectController::class, 'analyzeWebsite'])
         ->name('projects.analyze-website');
@@ -67,6 +67,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.articles.publication-status');
     Route::post('projects/{project}/articles/{article}/regenerate-inline-image', [ArticleController::class, 'regenerateInlineImage'])
         ->name('projects.articles.regenerate-inline-image');
+    Route::post('projects/{project}/articles/{article}/enrich', [ArticleController::class, 'enrich'])
+        ->name('projects.articles.enrich');
+    Route::get('projects/{project}/articles/{article}/enrichment-status', [ArticleController::class, 'enrichmentStatus'])
+        ->name('projects.articles.enrichment-status');
     Route::post('projects/{project}/youtube-search', [ArticleController::class, 'searchYouTube'])
         ->name('projects.youtube-search');
     // Project Settings (sectioned)
@@ -94,6 +98,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.settings.call-to-action');
     Route::put('projects/{project}/settings/call-to-action', [ProjectController::class, 'updateSettingsCallToAction'])
         ->name('projects.settings.call-to-action.update');
+    Route::get('projects/{project}/settings/publishing', [ProjectController::class, 'settingsPublishing'])
+        ->name('projects.settings.publishing');
+    Route::put('projects/{project}/settings/publishing', [ProjectController::class, 'updateSettingsPublishing'])
+        ->name('projects.settings.publishing.update');
     Route::get('projects/{project}/settings/danger-zone', [ProjectController::class, 'settingsDangerZone'])
         ->name('projects.settings.danger-zone');
 
@@ -146,6 +154,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('projects.planner.auto-create');
     Route::post('projects/{project}/planner/create-keyword', [ContentPlannerController::class, 'createKeyword'])
         ->name('projects.planner.create-keyword');
+    Route::post('projects/{project}/planner/auto-schedule', [ContentPlannerController::class, 'autoSchedule'])
+        ->name('projects.planner.auto-schedule');
+    Route::post('projects/{project}/planner/{content}/generate', [ContentPlannerController::class, 'generate'])
+        ->name('projects.planner.generate');
+    Route::post('projects/{project}/planner/{content}/publish', [ContentPlannerController::class, 'publish'])
+        ->name('projects.planner.publish');
 });
 
 require __DIR__.'/settings.php';

@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ContentStatus;
 use App\Http\Requests\StoreKeywordRequest;
 use App\Http\Requests\UpdateKeywordRequest;
 use App\Jobs\GenerateArticleJob;
 use App\Models\Keyword;
 use App\Models\Project;
+use App\Models\ScheduledContent;
 use App\Services\BusinessAnalyzerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -22,6 +24,7 @@ class KeywordController extends Controller
 
         $keywords = $project->keywords()
             ->withCount('articles')
+            ->with(['scheduledContent'])
             ->orderBy('priority', 'desc')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
@@ -59,6 +62,7 @@ class KeywordController extends Controller
         $keyword->loadCount('articles');
         $keyword->load([
             'articles' => fn ($q) => $q->withSum('usageLogs', 'estimated_cost')->latest()->limit(10),
+            'scheduledContent',
         ]);
 
         return Inertia::render('Keywords/Show', [
@@ -120,9 +124,24 @@ class KeywordController extends Controller
                 ->with('error', 'Please configure an AI provider before generating articles.');
         }
 
-        $keyword->update(['status' => 'queued']);
+        // Find existing scheduled content without an article, or create a new one
+        $scheduledContent = ScheduledContent::where('keyword_id', $keyword->id)
+            ->whereNull('article_id')
+            ->whereNotIn('status', [ContentStatus::Generating, ContentStatus::Queued])
+            ->first();
 
-        GenerateArticleJob::dispatch($keyword);
+        if (! $scheduledContent) {
+            $scheduledContent = ScheduledContent::create([
+                'project_id' => $project->id,
+                'keyword_id' => $keyword->id,
+                'title' => $keyword->keyword,
+                'status' => ContentStatus::Queued,
+            ]);
+        } else {
+            $scheduledContent->update(['status' => ContentStatus::Queued]);
+        }
+
+        GenerateArticleJob::dispatch($scheduledContent);
 
         return redirect()
             ->back()

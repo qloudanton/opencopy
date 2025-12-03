@@ -1046,7 +1046,7 @@ export default function PagesIndex({
                                                 onClick={() =>
                                                     handleRemoveKeyword(keyword)
                                                 }
-                                                className="hover:bg-muted ml-1 rounded p-0.5"
+                                                className="ml-1 rounded p-0.5 hover:bg-muted"
                                             >
                                                 <X className="h-3 w-3" />
                                             </button>
