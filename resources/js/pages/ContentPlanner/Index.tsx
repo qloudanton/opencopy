@@ -393,8 +393,9 @@ export default function ContentPlannerIndex({
                 generate.url({ project: project.id, content: content.id }),
             );
             router.reload({ only: ['scheduledContents', 'backlog', 'stats'] });
-        } catch (error: any) {
-            console.error('Error generating content:', error);
+        } catch (err: unknown) {
+            console.error('Error generating content:', err);
+            const error = err as { response?: { data?: { redirect?: string } } };
             if (error.response?.data?.redirect) {
                 router.visit(error.response.data.redirect);
             }
@@ -423,8 +424,9 @@ export default function ContentPlannerIndex({
                 toast.success(response.data.message);
             }
             router.reload({ only: ['scheduledContents', 'backlog', 'stats'] });
-        } catch (error: any) {
-            console.error('Error publishing content:', error);
+        } catch (err: unknown) {
+            console.error('Error publishing content:', err);
+            const error = err as { response?: { data?: { redirect?: string; error?: string } } };
             if (error.response?.data?.redirect) {
                 toast.error(error.response?.data?.error || 'Failed to publish');
                 router.visit(error.response.data.redirect);

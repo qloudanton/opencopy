@@ -914,11 +914,6 @@ export default function Show({
                                                     selectedIntegrations.includes(
                                                         integration.id,
                                                     );
-                                                const isPending =
-                                                    publication?.status ===
-                                                        'pending' ||
-                                                    publication?.status ===
-                                                        'publishing';
 
                                                 return (
                                                     <div

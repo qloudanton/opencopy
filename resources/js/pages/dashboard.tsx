@@ -11,7 +11,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { FolderKanban, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -23,20 +23,19 @@ const breadcrumbs: BreadcrumbItem[] = [
 export default function Dashboard() {
     const { projects } = usePage<SharedData>().props;
     const { getLastProject } = useProject();
-    const [checked, setChecked] = useState(false);
 
-    // Check for last project and redirect
+    // Check if there's a last project to redirect to
+    const lastProject = useMemo(() => getLastProject(), [getLastProject]);
+
+    // Redirect to last project if one exists
     useEffect(() => {
-        const lastProject = getLastProject();
         if (lastProject) {
             router.visit(`/projects/${lastProject.id}`);
-        } else {
-            setChecked(true);
         }
-    }, [getLastProject]);
+    }, [lastProject]);
 
-    // Show loading state while checking for last project
-    if (!checked) {
+    // Show loading state while redirecting
+    if (lastProject) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Dashboard" />

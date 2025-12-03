@@ -41,7 +41,6 @@ function ProjectIcon({
     const domain = getDomainFromUrl(project.website_url);
     const iconSize = size === 'sm' ? 'size-3.5' : 'size-4';
     const containerSize = size === 'sm' ? 'size-6' : 'size-8';
-    const imgSize = size === 'sm' ? 16 : 20;
 
     if (domain && !imgError) {
         return (

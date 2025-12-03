@@ -61,14 +61,6 @@ interface ScheduledContent {
     article?: { id: number; title: string; status: string } | null;
 }
 
-interface Integration {
-    id: number;
-    platform: string;
-    name: string;
-    is_active: boolean;
-    last_published_at: string | null;
-}
-
 interface Project {
     id: number;
     name: string;
@@ -102,7 +94,6 @@ interface Props {
     upcomingContent: ScheduledContent[];
     recentArticles: Article[];
     untargetedKeywords: Keyword[];
-    integrations: Integration[];
 }
 
 const statusConfig: Record<
@@ -190,7 +181,6 @@ export default function Show({
     upcomingContent,
     recentArticles,
     untargetedKeywords,
-    integrations,
 }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },

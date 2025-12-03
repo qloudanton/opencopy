@@ -64,7 +64,7 @@ export default function Integrations({ settings }: Props) {
             } else {
                 toast.error(response.data.error);
             }
-        } catch (error) {
+        } catch {
             toast.error('Failed to test YouTube connection');
         } finally {
             setIsTesting(false);

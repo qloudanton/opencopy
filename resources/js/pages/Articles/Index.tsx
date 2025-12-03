@@ -31,7 +31,7 @@ function SeoScoreBadge({ score }: { score: number | null }) {
         return { bg: 'bg-red-500', text: 'text-red-700', label: 'Poor' };
     };
 
-    const { bg, text, label } = getScoreColor(score);
+    const { bg, text } = getScoreColor(score);
     const percentage = Math.min(100, Math.max(0, score));
 
     return (

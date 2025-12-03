@@ -321,7 +321,7 @@ export default function Edit({
             setCurrentSeoScore(response.data.score);
             setCurrentSeoBreakdown(response.data.breakdown);
             toast.success('SEO score recalculated');
-        } catch (error) {
+        } catch {
             toast.error('Failed to recalculate SEO score');
         } finally {
             setIsRecalculating(false);
@@ -361,7 +361,7 @@ export default function Edit({
                 toast.error(error || 'Failed to generate featured image');
             }
             // If status is 'queued' or 'processing', keep polling
-        } catch (error) {
+        } catch {
             stopPolling();
             setIsGeneratingImage(false);
             toast.error('Failed to check image generation status');
@@ -423,7 +423,7 @@ export default function Edit({
 
             setFeaturedImage(null);
             toast.success('Featured image deleted');
-        } catch (error) {
+        } catch {
             toast.error('Failed to delete featured image');
         } finally {
             setIsDeletingImage(false);
@@ -487,7 +487,7 @@ export default function Edit({
                 toast.error(error || 'Content enrichment failed');
             }
             // If status is 'queued' or 'processing', keep polling
-        } catch (error) {
+        } catch {
             stopEnrichmentPolling();
             setIsEnriching(false);
             toast.error('Failed to check enrichment status');

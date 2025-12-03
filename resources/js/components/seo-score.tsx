@@ -581,7 +581,6 @@ function DetailedChecklist({ breakdown }: { breakdown: SeoBreakdown }) {
 export function SeoScore({
     score,
     breakdown,
-    keyword,
     onImprove,
     isImproving,
 }: SeoScoreProps) {
