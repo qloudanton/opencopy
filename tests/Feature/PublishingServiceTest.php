@@ -426,7 +426,7 @@ describe('Article PublishableContract', function () {
             'content_markdown',
             'meta_description',
             'excerpt',
-            'featured_image_url',
+            'image_url',
             'tags',
             'created_at',
             'word_count',
