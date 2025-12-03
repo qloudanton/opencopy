@@ -1,4 +1,6 @@
 import { index as aiProvidersIndex } from '@/actions/App/Http/Controllers/Settings/AiProviderController';
+import { edit as generationSettingsEdit } from '@/actions/App/Http/Controllers/Settings/GenerationSettingsController';
+import { edit as integrationsEdit } from '@/actions/App/Http/Controllers/Settings/IntegrationsController';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -35,6 +37,16 @@ const sidebarNavItems: NavItem[] = [
     {
         title: 'AI Providers',
         href: aiProvidersIndex(),
+        icon: null,
+    },
+    {
+        title: 'Integrations',
+        href: integrationsEdit(),
+        icon: null,
+    },
+    {
+        title: 'Account Defaults',
+        href: generationSettingsEdit(),
         icon: null,
     },
 ];

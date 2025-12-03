@@ -1,4 +1,9 @@
 @import 'tailwindcss';
+@import '@fontsource/geist-sans/400.css';
+@import '@fontsource/geist-sans/500.css';
+@import '@fontsource/geist-sans/600.css';
+@import '@fontsource/geist-sans/700.css';
+@plugin '@tailwindcss/typography';
 
 @import 'tw-animate-css';
 
@@ -9,9 +14,8 @@
 
 @theme {
     --font-sans:
-        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
-        'Noto Color Emoji';
+        'Geist Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -140,4 +144,169 @@
     body {
         @apply bg-background text-foreground;
     }
+}
+
+/* TipTap Editor Styles */
+.tiptap {
+    outline: none;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+.tiptap:focus {
+    outline: none;
+}
+
+/* Make sure prose styles apply to the editor content */
+.tiptap.ProseMirror {
+    min-height: 400px;
+}
+
+.tiptap h1 {
+    @apply mt-6 mb-4 text-3xl font-bold;
+}
+
+.tiptap h2 {
+    @apply mt-5 mb-3 text-2xl font-semibold;
+}
+
+.tiptap h3 {
+    @apply mt-4 mb-2 text-xl font-semibold;
+}
+
+.tiptap h4 {
+    @apply mt-3 mb-2 text-lg font-medium;
+}
+
+.tiptap p {
+    @apply my-3 leading-relaxed;
+}
+
+.tiptap ul {
+    @apply my-3 list-disc pl-6;
+}
+
+.tiptap ol {
+    @apply my-3 list-decimal pl-6;
+}
+
+.tiptap li {
+    @apply my-1;
+}
+
+.tiptap blockquote {
+    @apply my-4 border-l-4 border-muted-foreground/30 pl-4 text-muted-foreground italic;
+}
+
+.tiptap code {
+    @apply rounded bg-muted px-1.5 py-0.5 font-mono text-sm;
+}
+
+.tiptap pre {
+    @apply my-4 overflow-x-auto rounded-lg bg-muted p-4;
+}
+
+.tiptap pre code {
+    @apply bg-transparent p-0;
+}
+
+.tiptap a {
+    @apply text-primary underline hover:no-underline;
+}
+
+.tiptap img {
+    @apply my-4 h-auto max-w-full rounded-lg;
+}
+
+.tiptap hr {
+    @apply my-6 border-border;
+}
+
+.tiptap strong {
+    @apply font-semibold;
+}
+
+.tiptap em {
+    @apply italic;
+}
+
+.tiptap s {
+    @apply line-through;
+}
+
+/* Table styles */
+.tiptap table {
+    @apply my-4 w-full border-collapse overflow-hidden rounded-lg;
+}
+
+.tiptap table td,
+.tiptap table th {
+    @apply border border-border px-4 py-2 text-left align-top;
+    min-width: 100px;
+}
+
+.tiptap table th {
+    @apply bg-muted font-semibold;
+}
+
+.tiptap table tr:hover td {
+    @apply bg-muted/50;
+}
+
+/* Table cell selection */
+.tiptap .selectedCell {
+    @apply bg-primary/10;
+}
+
+.tiptap .selectedCell::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    @apply bg-primary/10;
+}
+
+/* Table resize handle */
+.tiptap .column-resize-handle {
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    @apply cursor-col-resize bg-primary/50;
+}
+
+.tiptap .tableWrapper {
+    @apply my-4 overflow-x-auto;
+}
+
+/* YouTube embed styles */
+.tiptap div[data-youtube-video] {
+    @apply my-4;
+}
+
+.tiptap div[data-youtube-video] iframe {
+    @apply aspect-video w-full rounded-lg;
+}
+
+/* Content Planner drag & drop styles */
+.is-dragging .day-cell {
+    cursor: pointer;
+}
+
+.day-cell.drag-over {
+    background-color: oklch(0.7 0.15 250 / 0.15) !important;
+    box-shadow: inset 0 0 0 2px oklch(0.7 0.15 250 / 0.5);
+    transform: scale(1.02);
+}
+
+.dark .day-cell.drag-over {
+    background-color: oklch(0.7 0.15 250 / 0.2) !important;
+    box-shadow: inset 0 0 0 2px oklch(0.7 0.15 250 / 0.4);
 }

@@ -49,6 +49,8 @@ interface AiProvider {
     api_endpoint: string | null;
     is_default: boolean;
     is_active: boolean;
+    supports_text: boolean;
+    supports_image: boolean;
     has_api_key: boolean;
     created_at: string;
 }
@@ -88,6 +90,8 @@ export default function AiProviders({ providers, availableProviders }: Props) {
         model: '',
         is_default: false,
         is_active: true,
+        supports_text: true,
+        supports_image: false,
     });
 
     const selectedProviderConfig = availableProviders.find(
@@ -110,6 +114,8 @@ export default function AiProviders({ providers, availableProviders }: Props) {
             model: provider.model,
             is_default: provider.is_default,
             is_active: provider.is_active,
+            supports_text: provider.supports_text,
+            supports_image: provider.supports_image,
         });
         setIsDialogOpen(true);
     }
@@ -430,6 +436,55 @@ export default function AiProviders({ providers, availableProviders }: Props) {
                                         Set as default
                                     </Label>
                                 </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">
+                                    Capabilities
+                                </Label>
+                                <div className="flex items-center gap-6">
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
+                                            id="supports_text"
+                                            checked={data.supports_text}
+                                            onCheckedChange={(checked) =>
+                                                setData(
+                                                    'supports_text',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        <Label
+                                            htmlFor="supports_text"
+                                            className="text-sm"
+                                        >
+                                            Supports text
+                                        </Label>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2">
+                                        <Switch
+                                            id="supports_image"
+                                            checked={data.supports_image}
+                                            onCheckedChange={(checked) =>
+                                                setData(
+                                                    'supports_image',
+                                                    checked,
+                                                )
+                                            }
+                                        />
+                                        <Label
+                                            htmlFor="supports_image"
+                                            className="text-sm"
+                                        >
+                                            Supports images
+                                        </Label>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Enable based on what this provider/model can
+                                    generate
+                                </p>
                             </div>
 
                             <DialogFooter>

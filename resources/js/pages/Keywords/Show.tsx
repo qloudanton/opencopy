@@ -8,11 +8,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Clock, FileText, Loader2, Sparkles } from 'lucide-react';
+import { Clock, DollarSign, FileText, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 // Mini SEO score component for table display
@@ -54,6 +54,7 @@ interface Article {
     word_count: number;
     reading_time_minutes: number;
     seo_score: number | null;
+    usage_logs_sum_estimated_cost: number | null;
     created_at: string;
 }
 
@@ -62,11 +63,9 @@ interface Keyword {
     keyword: string;
     secondary_keywords: string[] | null;
     search_intent: string | null;
-    target_word_count: number | null;
-    tone: string | null;
-    additional_instructions: string | null;
+    difficulty: string | null;
+    volume: string | null;
     status: string;
-    priority: number;
     error_message: string | null;
     articles_count: number;
     articles: Article[];
@@ -181,7 +180,7 @@ export default function Show({ project, keyword }: Props) {
                 <div className="grid gap-4 md:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Keyword Settings</CardTitle>
+                            <CardTitle>Keyword Details</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {keyword.secondary_keywords &&
@@ -205,50 +204,32 @@ export default function Show({ project, keyword }: Props) {
                                     </div>
                                 )}
 
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">
                                         Search Intent
                                     </p>
                                     <p className="capitalize">
-                                        {keyword.search_intent || 'Not set'}
+                                        {keyword.search_intent || 'Auto-detect'}
                                     </p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">
-                                        Tone
+                                        Difficulty
                                     </p>
                                     <p className="capitalize">
-                                        {keyword.tone || 'Not set'}
+                                        {keyword.difficulty || '-'}
                                     </p>
                                 </div>
                                 <div>
                                     <p className="text-sm font-medium text-muted-foreground">
-                                        Target Word Count
+                                        Volume
                                     </p>
-                                    <p>
-                                        {keyword.target_word_count?.toLocaleString() ||
-                                            'Not set'}
+                                    <p className="capitalize">
+                                        {keyword.volume || '-'}
                                     </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-muted-foreground">
-                                        Priority
-                                    </p>
-                                    <p>{keyword.priority}</p>
                                 </div>
                             </div>
-
-                            {keyword.additional_instructions && (
-                                <div>
-                                    <p className="mb-1 text-sm font-medium text-muted-foreground">
-                                        Additional Instructions
-                                    </p>
-                                    <p className="text-sm whitespace-pre-wrap">
-                                        {keyword.additional_instructions}
-                                    </p>
-                                </div>
-                            )}
                         </CardContent>
                     </Card>
 
@@ -314,6 +295,9 @@ export default function Show({ project, keyword }: Props) {
                                                 Read Time
                                             </th>
                                             <th className="p-3 text-left text-sm font-medium">
+                                                Cost
+                                            </th>
+                                            <th className="p-3 text-left text-sm font-medium">
                                                 Created
                                             </th>
                                         </tr>
@@ -343,7 +327,9 @@ export default function Show({ project, keyword }: Props) {
                                                 </td>
                                                 <td className="p-3">
                                                     <SeoScoreBadge
-                                                        score={article.seo_score}
+                                                        score={
+                                                            article.seo_score
+                                                        }
                                                     />
                                                 </td>
                                                 <td className="p-3 text-sm text-muted-foreground">
@@ -360,6 +346,18 @@ export default function Show({ project, keyword }: Props) {
                                                             1}{' '}
                                                         min
                                                     </span>
+                                                </td>
+                                                <td className="p-3 text-sm text-muted-foreground">
+                                                    {article.usage_logs_sum_estimated_cost ? (
+                                                        <span className="flex items-center gap-1">
+                                                            <DollarSign className="h-3 w-3" />
+                                                            {Number(
+                                                                article.usage_logs_sum_estimated_cost,
+                                                            ).toFixed(2)}
+                                                        </span>
+                                                    ) : (
+                                                        '-'
+                                                    )}
                                                 </td>
                                                 <td className="p-3 text-sm text-muted-foreground">
                                                     {new Date(

@@ -16,9 +16,11 @@ import { type NavItem, type SharedData } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
 import {
     BookOpen,
+    CalendarDays,
     FileText,
     Folder,
     FolderKanban,
+    Globe,
     Key,
     LayoutGrid,
     Link2,
@@ -56,6 +58,11 @@ export function AppSidebar() {
                   icon: Key,
               },
               {
+                  title: 'Content Planner',
+                  href: `/projects/${currentProject.id}/planner`,
+                  icon: CalendarDays,
+              },
+              {
                   title: 'Articles',
                   href: `/projects/${currentProject.id}/articles`,
                   icon: FileText,
@@ -66,7 +73,12 @@ export function AppSidebar() {
                   icon: Link2,
               },
               {
-                  title: 'Settings',
+                  title: 'Internal Pages',
+                  href: `/projects/${currentProject.id}/pages`,
+                  icon: Globe,
+              },
+              {
+                  title: 'Project Settings',
                   href: `/projects/${currentProject.id}/settings`,
                   icon: Settings,
               },

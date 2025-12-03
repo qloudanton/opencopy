@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Contracts\Publishing\PublishableContract;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
-class Article extends Model
+class Article extends Model implements PublishableContract
 {
     /** @use HasFactory<\Database\Factories\ArticleFactory> */
     use HasFactory;
@@ -126,6 +129,21 @@ class Article extends Model
         return $this->hasMany(Publication::class);
     }
 
+    public function scheduledContent(): HasOne
+    {
+        return $this->hasOne(ScheduledContent::class);
+    }
+
+    public function usageLogs(): HasMany
+    {
+        return $this->hasMany(UsageLog::class);
+    }
+
+    public function totalCost(): float
+    {
+        return (float) $this->usageLogs()->sum('estimated_cost');
+    }
+
     public function isDraft(): bool
     {
         return $this->status === 'draft';
@@ -134,5 +152,96 @@ class Article extends Model
     public function isPublished(): bool
     {
         return $this->status === 'published';
+    }
+
+    // =========================================================================
+    // PublishableContract Implementation
+    // =========================================================================
+
+    public function getPublishableId(): int
+    {
+        return $this->id;
+    }
+
+    public function getPublishableTitle(): string
+    {
+        return $this->title;
+    }
+
+    public function getPublishableSlug(): string
+    {
+        return $this->slug;
+    }
+
+    public function getPublishableHtml(): string
+    {
+        return $this->content ?? '';
+    }
+
+    public function getPublishableMarkdown(): string
+    {
+        return $this->content_markdown ?? '';
+    }
+
+    public function getPublishableMetaDescription(): ?string
+    {
+        return $this->meta_description;
+    }
+
+    public function getPublishableExcerpt(): ?string
+    {
+        return $this->excerpt;
+    }
+
+    public function getPublishableFeaturedImageUrl(): ?string
+    {
+        $featuredImage = $this->featuredImage();
+
+        return $featuredImage?->url ?? $featuredImage?->path;
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getPublishableTags(): array
+    {
+        // Extract tags from keyword's secondary_keywords if available
+        $tags = [];
+
+        if ($this->keyword) {
+            $tags[] = $this->keyword->keyword;
+
+            if (is_array($this->keyword->secondary_keywords)) {
+                $tags = array_merge($tags, $this->keyword->secondary_keywords);
+            }
+        }
+
+        return array_unique(array_filter($tags));
+    }
+
+    public function getPublishableCreatedAt(): DateTimeInterface
+    {
+        return $this->created_at;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function toPublishableArray(): array
+    {
+        return [
+            'id' => $this->getPublishableId(),
+            'title' => $this->getPublishableTitle(),
+            'slug' => $this->getPublishableSlug(),
+            'content_html' => $this->getPublishableHtml(),
+            'content_markdown' => $this->getPublishableMarkdown(),
+            'meta_description' => $this->getPublishableMetaDescription(),
+            'excerpt' => $this->getPublishableExcerpt(),
+            'featured_image_url' => $this->getPublishableFeaturedImageUrl(),
+            'tags' => $this->getPublishableTags(),
+            'created_at' => $this->getPublishableCreatedAt()->format('c'),
+            'word_count' => $this->word_count,
+            'reading_time_minutes' => $this->reading_time_minutes,
+        ];
     }
 }

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Observers\KeywordObserver;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+#[ObservedBy(KeywordObserver::class)]
 class Keyword extends Model
 {
     /** @use HasFactory<\Database\Factories\KeywordFactory> */
@@ -17,6 +20,8 @@ class Keyword extends Model
         'keyword',
         'secondary_keywords',
         'search_intent',
+        'difficulty',
+        'volume',
         'target_word_count',
         'tone',
         'additional_instructions',
@@ -42,6 +47,11 @@ class Keyword extends Model
     public function articles(): HasMany
     {
         return $this->hasMany(Article::class);
+    }
+
+    public function scheduledContents(): HasMany
+    {
+        return $this->hasMany(ScheduledContent::class);
     }
 
     public function latestArticle(): ?Article

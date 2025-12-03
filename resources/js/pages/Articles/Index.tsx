@@ -1,11 +1,11 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
 import AppLayout from '@/layouts/app-layout';
+import { cn } from '@/lib/utils';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
-import { Clock, FileText } from 'lucide-react';
+import { Clock, DollarSign, FileText } from 'lucide-react';
 
 // Mini SEO score component for table display
 function SeoScoreBadge({ score }: { score: number | null }) {
@@ -14,9 +14,20 @@ function SeoScoreBadge({ score }: { score: number | null }) {
     }
 
     const getScoreColor = (s: number) => {
-        if (s >= 80) return { bg: 'bg-green-500', text: 'text-green-700', label: 'Excellent' };
-        if (s >= 60) return { bg: 'bg-lime-500', text: 'text-lime-700', label: 'Good' };
-        if (s >= 40) return { bg: 'bg-orange-500', text: 'text-orange-700', label: 'Needs Work' };
+        if (s >= 80)
+            return {
+                bg: 'bg-green-500',
+                text: 'text-green-700',
+                label: 'Excellent',
+            };
+        if (s >= 60)
+            return { bg: 'bg-lime-500', text: 'text-lime-700', label: 'Good' };
+        if (s >= 40)
+            return {
+                bg: 'bg-orange-500',
+                text: 'text-orange-700',
+                label: 'Needs Work',
+            };
         return { bg: 'bg-red-500', text: 'text-red-700', label: 'Poor' };
     };
 
@@ -51,6 +62,7 @@ interface Article {
     word_count: number;
     reading_time_minutes: number;
     seo_score: number | null;
+    usage_logs_sum_estimated_cost: number | null;
     keyword: Keyword | null;
     created_at: string;
 }
@@ -151,6 +163,9 @@ export default function Index({ project, articles }: Props) {
                                             Read Time
                                         </th>
                                         <th className="p-3 text-left text-sm font-medium">
+                                            Cost
+                                        </th>
+                                        <th className="p-3 text-left text-sm font-medium">
                                             Created
                                         </th>
                                     </tr>
@@ -212,6 +227,18 @@ export default function Index({ project, articles }: Props) {
                                                         1}{' '}
                                                     min
                                                 </span>
+                                            </td>
+                                            <td className="p-3 text-sm text-muted-foreground">
+                                                {article.usage_logs_sum_estimated_cost ? (
+                                                    <span className="flex items-center gap-1">
+                                                        <DollarSign className="h-3 w-3" />
+                                                        {Number(
+                                                            article.usage_logs_sum_estimated_cost,
+                                                        ).toFixed(2)}
+                                                    </span>
+                                                ) : (
+                                                    '-'
+                                                )}
                                             </td>
                                             <td className="p-3 text-sm text-muted-foreground">
                                                 {new Date(

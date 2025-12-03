@@ -4,11 +4,12 @@ namespace App\Services;
 
 use App\Models\AiProvider;
 use App\Models\Article;
-use App\Models\InternalLink;
 use App\Models\Keyword;
+use App\Models\ProjectPage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Prism\Prism\Prism;
+use Prism\Prism\Text\Response as TextResponse;
 
 class ArticleGenerationService
 {
@@ -18,9 +19,17 @@ class ArticleGenerationService
 
     protected ?string $generatedContent = null;
 
+    protected ?TextResponse $lastResponse = null;
+
+    protected array $usedSmartLinks = [];
+
     public function __construct(
         protected Prism $prism,
-        protected SeoScoreService $seoScoreService
+        protected SeoScoreService $seoScoreService,
+        protected ArticleImageService $articleImageService,
+        protected UsageTrackingService $usageTrackingService,
+        protected YouTubeService $youTubeService,
+        protected SitemapService $sitemapService
     ) {}
 
     public function generate(Keyword $keyword, ?AiProvider $aiProvider = null): Article
@@ -42,8 +51,25 @@ class ArticleGenerationService
                 return $article;
             });
 
+            // Log usage for text generation
+            $this->logUsage($article);
+
             // Calculate SEO score after article is created
             $this->seoScoreService->calculateAndSave($article);
+
+            // Process inline image placeholders if enabled and project has image style configured
+            $project = $this->keyword->project;
+            if ($project->generate_inline_images && $project->image_style) {
+                $this->processInlineImages($article);
+            }
+
+            // Process video placeholders if YouTube is configured and videos are enabled
+            if ($this->keyword->project->include_youtube_videos) {
+                $this->processVideoPlaceholders($article);
+            }
+
+            // Track smart link usage
+            $this->trackSmartLinkUsage();
 
             return $article->fresh();
         } catch (\Exception $e) {
@@ -57,18 +83,8 @@ class ArticleGenerationService
 
     protected function getDefaultProvider(): AiProvider
     {
-        $provider = $this->keyword->project->user
-            ->aiProviders()
-            ->where('is_active', true)
-            ->where('is_default', true)
-            ->first();
-
-        if (! $provider) {
-            $provider = $this->keyword->project->user
-                ->aiProviders()
-                ->where('is_active', true)
-                ->first();
-        }
+        // Get the project's effective text provider (Project → Account Default → Any Active)
+        $provider = $this->keyword->project->getEffectiveTextProvider();
 
         if (! $provider) {
             throw new \RuntimeException('No active AI provider configured. Please add an AI provider in settings.');
@@ -92,7 +108,7 @@ class ArticleGenerationService
     {
         $providerConfig = $this->buildProviderConfig();
 
-        $response = $this->prism->text()
+        $this->lastResponse = $this->prism->text()
             ->using($this->aiProvider->provider, $this->aiProvider->model, $providerConfig)
             ->withClientOptions(['timeout' => 300]) // 5 minutes for long article generation
             ->withMaxTokens(16000) // Allow for longer articles (default is 2048)
@@ -100,7 +116,7 @@ class ArticleGenerationService
             ->withPrompt($this->buildUserPrompt())
             ->asText();
 
-        return $response->text;
+        return $this->lastResponse->text;
     }
 
     protected function buildProviderConfig(): array
@@ -192,9 +208,10 @@ Example: If listing "invoice requirements" with name, description, and whether e
 
 PROMPT;
 
-        // Add target audience context
-        if ($project->target_audience) {
-            $prompt .= "\n## Target Audience\n{$project->target_audience}\nWrite specifically for this audience - address their knowledge level, concerns, and goals.\n";
+        // Add target audiences context
+        if (! empty($project->target_audiences)) {
+            $audiencesList = implode(', ', $project->target_audiences);
+            $prompt .= "\n## Target Audiences\n{$audiencesList}\nWrite specifically for these audiences - address their knowledge level, concerns, and goals.\n";
         }
 
         // Add brand guidelines
@@ -424,16 +441,107 @@ PROMPT;
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Collection<int, InternalLink>
+     * @return \Illuminate\Support\Collection<int, object>
      */
     protected function getRelevantInternalLinks()
     {
-        return $this->keyword->project
+        $project = $this->keyword->project;
+        $links = collect();
+
+        // Get manually configured internal links
+        $manualLinks = $project
             ->internalLinks()
             ->where('is_active', true)
             ->orderBy('priority', 'desc')
-            ->limit(10)
-            ->get();
+            ->limit(5)
+            ->get()
+            ->map(fn ($link) => (object) [
+                'url' => $link->url,
+                'anchor_text' => $link->anchor_text,
+                'description' => $link->description,
+                'is_smart_link' => false,
+            ]);
+
+        $links = $links->merge($manualLinks);
+
+        // Get smart links from sitemap pages if enabled
+        if ($project->auto_internal_linking && $project->pages()->exists()) {
+            $limit = $project->internal_links_per_article ?? 3;
+            $remainingSlots = max(0, $limit - $links->count());
+
+            if ($remainingSlots > 0) {
+                $smartLinks = $this->getSmartLinksForKeyword($remainingSlots);
+                $links = $links->merge($smartLinks);
+            }
+        }
+
+        return $links;
+    }
+
+    /**
+     * Get relevant smart links from project pages based on keyword relevance.
+     *
+     * @return \Illuminate\Support\Collection<int, object>
+     */
+    protected function getSmartLinksForKeyword(int $limit)
+    {
+        $project = $this->keyword->project;
+        $keywords = array_merge(
+            [$this->keyword->keyword],
+            $this->keyword->secondary_keywords ?? []
+        );
+
+        // Use sitemap service to get relevant pages
+        $relevantPages = $this->sitemapService->getRelevantPagesForArticle(
+            $project,
+            '', // We don't have article content yet
+            $keywords,
+            $limit
+        );
+
+        // Track which pages we're using for link count updates
+        $this->usedSmartLinks = $relevantPages->pluck('id')->toArray();
+
+        return $relevantPages->map(fn (ProjectPage $page) => (object) [
+            'url' => $page->url,
+            'anchor_text' => $page->title ?: $this->generateAnchorText($page->url),
+            'description' => 'Related content from your website',
+            'is_smart_link' => true,
+            'page_id' => $page->id,
+        ]);
+    }
+
+    protected function generateAnchorText(string $url): string
+    {
+        $parsed = parse_url($url);
+        $path = $parsed['path'] ?? '';
+
+        // Get the last path segment
+        $segments = array_filter(explode('/', $path));
+        $lastSegment = end($segments);
+
+        if (! $lastSegment) {
+            return 'Learn more';
+        }
+
+        // Convert hyphens/underscores to spaces and title case
+        $title = str_replace(['-', '_'], ' ', $lastSegment);
+
+        return Str::title($title);
+    }
+
+    protected function trackSmartLinkUsage(): void
+    {
+        if (empty($this->usedSmartLinks)) {
+            return;
+        }
+
+        // Increment link count for all used pages
+        ProjectPage::whereIn('id', $this->usedSmartLinks)
+            ->increment('link_count');
+
+        // Reset for next generation
+        $this->usedSmartLinks = [];
     }
 
     protected function createArticle(): Article
@@ -503,5 +611,102 @@ PROMPT;
             'meta_description' => $metaDescription,
             'content' => $content,
         ];
+    }
+
+    protected function processInlineImages(Article $article): void
+    {
+        try {
+            // Get the project's effective image provider (may be different from text provider)
+            $imageProvider = $this->keyword->project->getEffectiveImageProvider();
+
+            if (! $imageProvider) {
+                \Illuminate\Support\Facades\Log::warning('No image provider configured, skipping inline images', [
+                    'article_id' => $article->id,
+                ]);
+
+                return;
+            }
+
+            $result = $this->articleImageService->processArticleImages($article, $imageProvider);
+
+            // Log any errors but don't fail the article generation
+            if (! empty($result['errors'])) {
+                \Illuminate\Support\Facades\Log::warning('Some inline images failed to generate', [
+                    'article_id' => $article->id,
+                    'errors' => $result['errors'],
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log the error but don't fail the article generation
+            \Illuminate\Support\Facades\Log::error('Failed to process inline images', [
+                'article_id' => $article->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function processVideoPlaceholders(Article $article): void
+    {
+        $user = $this->keyword->project->user;
+
+        // Check if user has YouTube API configured
+        if (! $user->settings?->hasYouTubeApiKey()) {
+            \Illuminate\Support\Facades\Log::info('YouTube API key not configured, skipping video placeholders', [
+                'article_id' => $article->id,
+            ]);
+
+            return;
+        }
+
+        try {
+            $content = $article->content_markdown ?? $article->content;
+            $processedContent = $this->youTubeService
+                ->forUser($user)
+                ->processVideoPlaceholders($content);
+
+            // Only update if content changed
+            if ($processedContent !== $content) {
+                $article->update([
+                    'content' => $processedContent,
+                    'content_markdown' => $processedContent,
+                ]);
+
+                \Illuminate\Support\Facades\Log::info('Processed video placeholders in article', [
+                    'article_id' => $article->id,
+                ]);
+            }
+        } catch (\Exception $e) {
+            // Log the error but don't fail the article generation
+            \Illuminate\Support\Facades\Log::error('Failed to process video placeholders', [
+                'article_id' => $article->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    protected function logUsage(Article $article): void
+    {
+        if (! $this->lastResponse) {
+            return;
+        }
+
+        $usage = $this->lastResponse->usage;
+
+        $this->usageTrackingService->logTextGeneration(
+            user: $this->keyword->project->user,
+            article: $article,
+            aiProvider: $this->aiProvider,
+            model: $this->aiProvider->model,
+            inputTokens: $usage->promptTokens,
+            outputTokens: $usage->completionTokens,
+            operation: 'article_generation',
+            metadata: [
+                'keyword' => $this->keyword->keyword,
+                'target_word_count' => $this->keyword->target_word_count,
+                'generated_word_count' => $article->word_count,
+                'cache_write_tokens' => $usage->cacheWriteInputTokens,
+                'cache_read_tokens' => $usage->cacheReadInputTokens,
+            ]
+        );
     }
 }

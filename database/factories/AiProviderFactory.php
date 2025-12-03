@@ -19,6 +19,9 @@ class AiProviderFactory extends Factory
             'ollama' => ['llama3', 'mistral', 'mixtral'],
         ];
 
+        // OpenAI supports both text and image, others only text
+        $supportsImage = in_array($provider, ['openai', 'gemini']);
+
         return [
             'user_id' => User::factory(),
             'provider' => $provider,
@@ -32,6 +35,8 @@ class AiProviderFactory extends Factory
             ],
             'is_default' => false,
             'is_active' => true,
+            'supports_text' => true,
+            'supports_image' => $supportsImage,
         ];
     }
 
@@ -42,6 +47,8 @@ class AiProviderFactory extends Factory
             'name' => 'OpenAI',
             'model' => 'gpt-4o',
             'api_endpoint' => null,
+            'supports_text' => true,
+            'supports_image' => true,
         ]);
     }
 
@@ -52,6 +59,20 @@ class AiProviderFactory extends Factory
             'name' => 'Anthropic',
             'model' => 'claude-sonnet-4-20250514',
             'api_endpoint' => null,
+            'supports_text' => true,
+            'supports_image' => false,
+        ]);
+    }
+
+    public function gemini(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'provider' => 'gemini',
+            'name' => 'Google Gemini',
+            'model' => 'gemini-2.0-flash',
+            'api_endpoint' => null,
+            'supports_text' => true,
+            'supports_image' => true,
         ]);
     }
 
@@ -62,6 +83,8 @@ class AiProviderFactory extends Factory
             'name' => 'Local Ollama',
             'model' => 'llama3',
             'api_endpoint' => 'http://localhost:11434',
+            'supports_text' => true,
+            'supports_image' => false,
         ]);
     }
 

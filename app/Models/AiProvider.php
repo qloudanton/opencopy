@@ -22,6 +22,8 @@ class AiProvider extends Model
         'settings',
         'is_default',
         'is_active',
+        'supports_text',
+        'supports_image',
     ];
 
     protected $hidden = [
@@ -35,6 +37,8 @@ class AiProvider extends Model
             'settings' => 'array',
             'is_default' => 'boolean',
             'is_active' => 'boolean',
+            'supports_text' => 'boolean',
+            'supports_image' => 'boolean',
         ];
     }
 

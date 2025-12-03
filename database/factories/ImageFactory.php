@@ -63,4 +63,12 @@ class ImageFactory extends Factory
             'metadata' => ['provider' => 'unsplash', 'photo_id' => fake()->uuid()],
         ]);
     }
+
+    public function inline(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'inline',
+            'source' => 'ai_generated',
+        ]);
+    }
 }

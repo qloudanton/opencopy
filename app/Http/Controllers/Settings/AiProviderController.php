@@ -28,6 +28,8 @@ class AiProviderController extends Controller
                 'api_endpoint' => $provider->api_endpoint,
                 'is_default' => $provider->is_default,
                 'is_active' => $provider->is_active,
+                'supports_text' => $provider->supports_text,
+                'supports_image' => $provider->supports_image,
                 'has_api_key' => ! empty($provider->api_key),
                 'created_at' => $provider->created_at,
             ]);

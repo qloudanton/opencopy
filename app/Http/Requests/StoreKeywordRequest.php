@@ -18,6 +18,8 @@ class StoreKeywordRequest extends FormRequest
             'secondary_keywords' => ['nullable', 'array', 'max:20'],
             'secondary_keywords.*' => ['string', 'max:255'],
             'search_intent' => ['nullable', 'string', 'in:informational,transactional,navigational,commercial'],
+            'difficulty' => ['nullable', 'string', 'in:low,medium,high'],
+            'volume' => ['nullable', 'string', 'in:low,medium,high'],
             'target_word_count' => ['nullable', 'integer', 'min:300', 'max:10000'],
             'tone' => ['nullable', 'string', 'in:professional,casual,technical,friendly,authoritative'],
             'additional_instructions' => ['nullable', 'string', 'max:2000'],

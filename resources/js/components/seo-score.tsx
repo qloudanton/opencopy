@@ -193,7 +193,10 @@ function formatCategoryMetrics(
                 details.keyword_in_first_150_words && 'intro',
             ].filter(Boolean);
             const densityStr = density ? `${density.toFixed(1)}% density` : '';
-            const checksStr = checks.length > 0 ? `In: ${checks.join(', ')}` : 'Not in title/meta/headings';
+            const checksStr =
+                checks.length > 0
+                    ? `In: ${checks.join(', ')}`
+                    : 'Not in title/meta/headings';
             return [checksStr, densityStr].filter(Boolean).join(' · ');
         }
         case 'content_structure': {
@@ -212,18 +215,29 @@ function formatCategoryMetrics(
             const wordCount = details.word_count as number;
             const target = details.target_word_count as number;
             const ratio = details.target_ratio as number;
-            const status = ratio >= 0.9 && ratio <= 1.2
-                ? '✓ on target'
-                : ratio < 0.9
-                    ? `${Math.round((1 - ratio) * 100)}% below target`
-                    : `${Math.round((ratio - 1) * 100)}% above target`;
+            const status =
+                ratio >= 0.9 && ratio <= 1.2
+                    ? '✓ on target'
+                    : ratio < 0.9
+                      ? `${Math.round((1 - ratio) * 100)}% below target`
+                      : `${Math.round((ratio - 1) * 100)}% above target`;
             return `${wordCount.toLocaleString()} words · Target: ${target.toLocaleString()} · ${status}`;
         }
         case 'meta_quality': {
             const titleLen = details.title_length as number;
             const metaLen = details.meta_description_length as number;
-            const titleStatus = titleLen >= 50 && titleLen <= 60 ? '✓' : titleLen < 50 ? 'too short' : 'too long';
-            const metaStatus = metaLen >= 150 && metaLen <= 160 ? '✓' : metaLen < 150 ? 'too short' : 'too long';
+            const titleStatus =
+                titleLen >= 50 && titleLen <= 60
+                    ? '✓'
+                    : titleLen < 50
+                      ? 'too short'
+                      : 'too long';
+            const metaStatus =
+                metaLen >= 150 && metaLen <= 160
+                    ? '✓'
+                    : metaLen < 150
+                      ? 'too short'
+                      : 'too long';
             return `Title: ${titleLen} chars (50-60 ${titleStatus}) · Meta: ${metaLen} chars (150-160 ${metaStatus})`;
         }
         case 'enrichment': {
@@ -636,7 +650,10 @@ export function SeoScore({
                                         score={data.score}
                                         max={data.max}
                                         icon={icon}
-                                        metrics={formatCategoryMetrics(key, data.details)}
+                                        metrics={formatCategoryMetrics(
+                                            key,
+                                            data.details,
+                                        )}
                                     />
                                 ),
                         )}

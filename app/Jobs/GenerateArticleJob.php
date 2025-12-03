@@ -40,7 +40,18 @@ class GenerateArticleJob implements ShouldQueue
             return;
         }
 
-        $service->generate($this->keyword, $this->aiProvider);
+        $article = $service->generate($this->keyword, $this->aiProvider);
+
+        // Queue featured image generation if enabled and project has image style configured
+        $project = $this->keyword->project;
+        if ($article && $project->generate_featured_image && $project->image_style) {
+            // Get the project's effective image provider (Project → Account Default → Any Active)
+            $imageProvider = $project->getEffectiveImageProvider();
+
+            if ($imageProvider) {
+                GenerateFeaturedImageJob::dispatch($article, $imageProvider);
+            }
+        }
     }
 
     public function failed(\Throwable $exception): void

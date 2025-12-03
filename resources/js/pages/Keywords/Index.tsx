@@ -1,11 +1,14 @@
-import { generate } from '@/actions/App/Http/Controllers/KeywordController';
-import { Badge } from '@/components/ui/badge';
+import {
+    analyze,
+    generate,
+} from '@/actions/App/Http/Controllers/KeywordController';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import AppLayout from '@/layouts/app-layout';
+import { axios } from '@/lib/axios';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Loader2, Sparkles } from 'lucide-react';
+import { BarChart3, Loader2, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 interface Keyword {
@@ -13,8 +16,9 @@ interface Keyword {
     keyword: string;
     secondary_keywords: string[] | null;
     search_intent: string | null;
+    difficulty: string | null;
+    volume: string | null;
     status: string;
-    priority: number;
     articles_count: number;
     created_at: string;
 }
@@ -39,24 +43,62 @@ interface Props {
     keywords: PaginatedKeywords;
 }
 
-function getStatusVariant(
-    status: string,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-    switch (status) {
-        case 'completed':
-            return 'default';
-        case 'queued':
-        case 'generating':
-            return 'secondary';
-        case 'failed':
-            return 'destructive';
-        default:
-            return 'outline';
-    }
+const difficultyConfig: Record<string, { level: number; color: string }> = {
+    low: { level: 1, color: 'bg-green-500' },
+    medium: { level: 2, color: 'bg-yellow-500' },
+    high: { level: 3, color: 'bg-red-500' },
+};
+
+const volumeConfig: Record<string, { level: number; color: string }> = {
+    low: { level: 1, color: 'bg-slate-400' },
+    medium: { level: 2, color: 'bg-slate-500' },
+    high: { level: 3, color: 'bg-slate-600' },
+};
+
+function MiniProgressBar({
+    level,
+    maxLevel = 3,
+    color,
+}: {
+    level: number;
+    maxLevel?: number;
+    color: string;
+}) {
+    return (
+        <div className="flex gap-0.5">
+            {Array.from({ length: maxLevel }).map((_, i) => (
+                <div
+                    key={i}
+                    className={`h-2 w-2 rounded-sm ${i < level ? color : 'bg-muted'}`}
+                />
+            ))}
+        </div>
+    );
 }
 
 export default function Index({ project, keywords }: Props) {
     const [generatingId, setGeneratingId] = useState<number | null>(null);
+    const [analyzing, setAnalyzing] = useState(false);
+
+    const keywordsNeedingAnalysis = keywords.data.filter(
+        (k) => !k.difficulty || !k.volume,
+    );
+
+    async function handleAnalyze() {
+        if (keywordsNeedingAnalysis.length === 0) return;
+
+        setAnalyzing(true);
+        try {
+            await axios.post(analyze.url({ project: project.id }), {
+                keyword_ids: keywordsNeedingAnalysis.map((k) => k.id),
+            });
+            router.reload({ only: ['keywords'] });
+        } catch (error) {
+            console.error('Error analyzing keywords:', error);
+        } finally {
+            setAnalyzing(false);
+        }
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Projects', href: '/projects' },
@@ -81,11 +123,29 @@ export default function Index({ project, keywords }: Props) {
             <div className="flex h-full flex-1 flex-col gap-4 p-4">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-bold">Keywords</h1>
-                    <Button asChild>
-                        <Link href={`/projects/${project.id}/keywords/create`}>
-                            Add Keyword
-                        </Link>
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {keywordsNeedingAnalysis.length > 0 && (
+                            <Button
+                                variant="outline"
+                                onClick={handleAnalyze}
+                                disabled={analyzing}
+                            >
+                                {analyzing ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <BarChart3 className="mr-2 h-4 w-4" />
+                                )}
+                                Analyze ({keywordsNeedingAnalysis.length})
+                            </Button>
+                        )}
+                        <Button asChild>
+                            <Link
+                                href={`/projects/${project.id}/keywords/create`}
+                            >
+                                Add Keyword
+                            </Link>
+                        </Button>
+                    </div>
                 </div>
 
                 {keywords.data.length === 0 ? (
@@ -113,16 +173,13 @@ export default function Index({ project, keywords }: Props) {
                                             Keyword
                                         </th>
                                         <th className="p-3 text-left text-sm font-medium">
-                                            Intent
+                                            Difficulty
                                         </th>
                                         <th className="p-3 text-left text-sm font-medium">
-                                            Status
+                                            Volume
                                         </th>
                                         <th className="p-3 text-left text-sm font-medium">
                                             Articles
-                                        </th>
-                                        <th className="p-3 text-left text-sm font-medium">
-                                            Priority
                                         </th>
                                         <th className="p-3 text-right text-sm font-medium">
                                             Actions
@@ -163,24 +220,50 @@ export default function Index({ project, keywords }: Props) {
                                                             </p>
                                                         )}
                                                 </td>
-                                                <td className="p-3 text-sm text-muted-foreground capitalize">
-                                                    {keyword.search_intent ||
-                                                        '-'}
+                                                <td className="p-3">
+                                                    {keyword.difficulty ? (
+                                                        <MiniProgressBar
+                                                            level={
+                                                                difficultyConfig[
+                                                                    keyword.difficulty.toLowerCase()
+                                                                ]?.level || 1
+                                                            }
+                                                            color={
+                                                                difficultyConfig[
+                                                                    keyword.difficulty.toLowerCase()
+                                                                ]?.color ||
+                                                                'bg-slate-400'
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground">
+                                                            -
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="p-3">
-                                                    <Badge
-                                                        variant={getStatusVariant(
-                                                            keyword.status,
-                                                        )}
-                                                    >
-                                                        {keyword.status}
-                                                    </Badge>
+                                                    {keyword.volume ? (
+                                                        <MiniProgressBar
+                                                            level={
+                                                                volumeConfig[
+                                                                    keyword.volume.toLowerCase()
+                                                                ]?.level || 1
+                                                            }
+                                                            color={
+                                                                volumeConfig[
+                                                                    keyword.volume.toLowerCase()
+                                                                ]?.color ||
+                                                                'bg-slate-400'
+                                                            }
+                                                        />
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground">
+                                                            -
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="p-3 text-sm text-muted-foreground">
                                                     {keyword.articles_count}
-                                                </td>
-                                                <td className="p-3 text-sm text-muted-foreground">
-                                                    {keyword.priority}
                                                 </td>
                                                 <td className="p-3 text-right">
                                                     <Button

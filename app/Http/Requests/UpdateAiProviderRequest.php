@@ -21,6 +21,8 @@ class UpdateAiProviderRequest extends FormRequest
             'model' => ['sometimes', 'required', 'string', 'max:100'],
             'is_default' => ['boolean'],
             'is_active' => ['boolean'],
+            'supports_text' => ['boolean'],
+            'supports_image' => ['boolean'],
         ];
     }
 

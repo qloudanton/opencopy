@@ -42,10 +42,6 @@ export default function Create({ project }: Props) {
         keyword: '',
         secondary_keywords: '',
         search_intent: '',
-        target_word_count: '',
-        tone: '',
-        additional_instructions: '',
-        priority: '50',
     });
 
     function handleSubmit(e: React.FormEvent) {
@@ -58,12 +54,7 @@ export default function Create({ project }: Props) {
                       .map((k) => k.trim())
                       .filter((k) => k)
                 : [],
-            target_word_count: data.target_word_count
-                ? parseInt(data.target_word_count)
-                : null,
-            priority: parseInt(data.priority),
             search_intent: data.search_intent || null,
-            tone: data.tone || null,
         };
         post(`/projects/${project.id}/keywords`, {
             data: formData,
@@ -122,134 +113,41 @@ export default function Create({ project }: Props) {
                                 />
                             </div>
 
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="search_intent">
-                                        Search Intent
-                                    </Label>
-                                    <Select
-                                        value={data.search_intent}
-                                        onValueChange={(value) =>
-                                            setData('search_intent', value)
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select intent" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="informational">
-                                                Informational
-                                            </SelectItem>
-                                            <SelectItem value="transactional">
-                                                Transactional
-                                            </SelectItem>
-                                            <SelectItem value="navigational">
-                                                Navigational
-                                            </SelectItem>
-                                            <SelectItem value="commercial">
-                                                Commercial
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError
-                                        message={errors.search_intent}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="tone">Tone</Label>
-                                    <Select
-                                        value={data.tone}
-                                        onValueChange={(value) =>
-                                            setData('tone', value)
-                                        }
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select tone" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="professional">
-                                                Professional
-                                            </SelectItem>
-                                            <SelectItem value="casual">
-                                                Casual
-                                            </SelectItem>
-                                            <SelectItem value="technical">
-                                                Technical
-                                            </SelectItem>
-                                            <SelectItem value="friendly">
-                                                Friendly
-                                            </SelectItem>
-                                            <SelectItem value="authoritative">
-                                                Authoritative
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <InputError message={errors.tone} />
-                                </div>
-                            </div>
-
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <div className="space-y-2">
-                                    <Label htmlFor="target_word_count">
-                                        Target Word Count
-                                    </Label>
-                                    <Input
-                                        id="target_word_count"
-                                        type="number"
-                                        value={data.target_word_count}
-                                        onChange={(e) =>
-                                            setData(
-                                                'target_word_count',
-                                                e.target.value,
-                                            )
-                                        }
-                                        placeholder="1500"
-                                        min={300}
-                                        max={10000}
-                                    />
-                                    <InputError
-                                        message={errors.target_word_count}
-                                    />
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label htmlFor="priority">
-                                        Priority (0-100)
-                                    </Label>
-                                    <Input
-                                        id="priority"
-                                        type="number"
-                                        value={data.priority}
-                                        onChange={(e) =>
-                                            setData('priority', e.target.value)
-                                        }
-                                        min={0}
-                                        max={100}
-                                    />
-                                    <InputError message={errors.priority} />
-                                </div>
-                            </div>
-
                             <div className="space-y-2">
-                                <Label htmlFor="additional_instructions">
-                                    Additional Instructions (optional)
+                                <Label htmlFor="search_intent">
+                                    Search Intent (optional)
                                 </Label>
-                                <Textarea
-                                    id="additional_instructions"
-                                    value={data.additional_instructions}
-                                    onChange={(e) =>
-                                        setData(
-                                            'additional_instructions',
-                                            e.target.value,
-                                        )
+                                <Select
+                                    value={data.search_intent}
+                                    onValueChange={(value) =>
+                                        setData('search_intent', value)
                                     }
-                                    placeholder="Include a comparison table, focus on budget options under $200..."
-                                    rows={4}
-                                />
-                                <InputError
-                                    message={errors.additional_instructions}
-                                />
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Auto-detect" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="informational">
+                                            Informational - How-to guides,
+                                            explanations
+                                        </SelectItem>
+                                        <SelectItem value="commercial">
+                                            Commercial - Comparisons, reviews
+                                        </SelectItem>
+                                        <SelectItem value="transactional">
+                                            Transactional - Buy, download, sign
+                                            up
+                                        </SelectItem>
+                                        <SelectItem value="navigational">
+                                            Navigational - Brand/product
+                                            specific
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <p className="text-xs text-muted-foreground">
+                                    Leave empty to let AI detect the intent
+                                </p>
+                                <InputError message={errors.search_intent} />
                             </div>
 
                             <Button type="submit" disabled={processing}>

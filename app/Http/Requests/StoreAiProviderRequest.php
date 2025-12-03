@@ -21,6 +21,8 @@ class StoreAiProviderRequest extends FormRequest
             'model' => ['required', 'string', 'max:100'],
             'is_default' => ['boolean'],
             'is_active' => ['boolean'],
+            'supports_text' => ['boolean'],
+            'supports_image' => ['boolean'],
         ];
     }
 

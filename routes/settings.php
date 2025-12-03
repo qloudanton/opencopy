@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Settings\AiProviderController;
+use App\Http\Controllers\Settings\GenerationSettingsController;
+use App\Http\Controllers\Settings\IntegrationsController;
 use App\Http\Controllers\Settings\PasswordController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\TwoFactorAuthenticationController;
@@ -32,4 +34,11 @@ Route::middleware('auth')->group(function () {
     Route::put('settings/ai-providers/{aiProvider}', [AiProviderController::class, 'update'])->name('ai-providers.update');
     Route::delete('settings/ai-providers/{aiProvider}', [AiProviderController::class, 'destroy'])->name('ai-providers.destroy');
     Route::post('settings/ai-providers/{aiProvider}/default', [AiProviderController::class, 'setDefault'])->name('ai-providers.set-default');
+
+    Route::get('settings/integrations', [IntegrationsController::class, 'edit'])->name('integrations.edit');
+    Route::put('settings/integrations', [IntegrationsController::class, 'update'])->name('integrations.update');
+    Route::post('settings/integrations/test-youtube', [IntegrationsController::class, 'testYouTube'])->name('integrations.test-youtube');
+
+    Route::get('settings/generation', [GenerationSettingsController::class, 'edit'])->name('generation-settings.edit');
+    Route::put('settings/generation', [GenerationSettingsController::class, 'update'])->name('generation-settings.update');
 });

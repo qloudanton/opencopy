@@ -17,6 +17,8 @@ class KeywordFactory extends Factory
             'keyword' => fake()->words(fake()->numberBetween(2, 5), true),
             'secondary_keywords' => fake()->optional()->words(fake()->numberBetween(3, 8)),
             'search_intent' => fake()->randomElement(['informational', 'transactional', 'navigational', 'commercial']),
+            'difficulty' => fake()->randomElement(['low', 'medium', 'high']),
+            'volume' => fake()->randomElement(['low', 'medium', 'high']),
             'target_word_count' => fake()->randomElement([1000, 1500, 2000, 2500]),
             'tone' => fake()->optional()->randomElement(['professional', 'casual', 'technical', 'friendly']),
             'additional_instructions' => fake()->optional()->sentence(),

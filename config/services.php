@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'openai' => [
+        // gpt-image-1: better quality, slower (~60s) - runs in background job
+        // dall-e-3: faster (~20s) but lower quality
+        'image_model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-1'),
+    ],
+
 ];

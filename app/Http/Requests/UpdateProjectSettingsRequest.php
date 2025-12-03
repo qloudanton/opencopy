@@ -37,7 +37,8 @@ class UpdateProjectSettingsRequest extends FormRequest
                 'string',
                 Rule::in(['professional', 'casual', 'friendly', 'technical', 'authoritative', 'conversational']),
             ],
-            'target_audience' => ['nullable', 'string', 'max:500'],
+            'target_audiences' => ['nullable', 'array'],
+            'target_audiences.*' => ['string', 'max:200'],
             'brand_guidelines' => ['nullable', 'string', 'max:2000'],
 
             // SEO Preferences
@@ -72,6 +73,12 @@ class UpdateProjectSettingsRequest extends FormRequest
             'cta_website_url' => ['nullable', 'url', 'max:255'],
             'cta_features' => ['nullable', 'string', 'max:500'],
             'cta_action_text' => ['nullable', 'string', 'max:100'],
+
+            // Sitemap/Internal Linking
+            'sitemap_url' => ['nullable', 'url', 'max:500'],
+            'auto_internal_linking' => ['boolean'],
+            'prioritize_blog_links' => ['boolean'],
+            'cross_link_articles' => ['boolean'],
         ];
     }
 

@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 
 interface MarkdownProps {
@@ -7,16 +8,33 @@ interface MarkdownProps {
     className?: string;
 }
 
+/**
+ * Clean up escaped markdown characters that may have been
+ * added by TipTap's markdown serialization.
+ */
+function preprocessMarkdown(content: string): string {
+    return (
+        content
+            // Fix escaped headings: \## -> ##
+            .replace(/\\(#{1,6}\s)/g, '$1')
+            // Fix escaped brackets: \[ -> [
+            .replace(/\\\[/g, '[')
+            .replace(/\\\]/g, ']')
+    );
+}
+
 export default function Markdown({ content, className }: MarkdownProps) {
+    const processedContent = preprocessMarkdown(content);
     return (
         <div
             className={cn(
-                'prose prose-neutral dark:prose-invert max-w-none',
+                'prose max-w-none prose-neutral dark:prose-invert',
                 className,
             )}
         >
             <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
                 components={{
                     h1: ({ children }) => (
                         <h1 className="mt-8 mb-4 text-3xl font-bold first:mt-0">
@@ -123,9 +141,29 @@ export default function Markdown({ content, className }: MarkdownProps) {
                             className="my-4 h-auto max-w-full rounded-lg"
                         />
                     ),
+                    // Handle YouTube embed divs
+                    div: ({ children, ...props }) => {
+                        // Check if it's a YouTube embed container
+                        if ('data-youtube-video' in props) {
+                            return (
+                                <div className="my-6 aspect-video overflow-hidden rounded-lg">
+                                    {children}
+                                </div>
+                            );
+                        }
+                        return <div {...props}>{children}</div>;
+                    },
+                    iframe: ({ src, ...props }) => (
+                        <iframe
+                            src={src}
+                            className="h-full w-full"
+                            allowFullScreen
+                            {...props}
+                        />
+                    ),
                 }}
             >
-                {content}
+                {processedContent}
             </ReactMarkdown>
         </div>
     );

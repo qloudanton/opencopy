@@ -49,14 +49,14 @@ class IntegrationFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'type' => 'webhook',
-            'name' => 'Webhook',
+            'name' => 'Webhook Integration',
             'credentials' => [
-                'secret' => fake()->sha256(),
+                'endpoint_url' => 'https://'.fake()->domainName().'/webhook',
+                'access_token' => fake()->sha256(),
             ],
             'settings' => [
-                'url' => fake()->url(),
-                'method' => 'POST',
-                'headers' => ['Content-Type' => 'application/json'],
+                'timeout' => 30,
+                'retry_times' => 3,
             ],
         ]);
     }
