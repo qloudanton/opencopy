@@ -20,8 +20,14 @@ class FeaturedImageService
 
     /**
      * Providers that support image generation via Prism.
+     * Gemini (Nano Banana) is the preferred provider for image generation.
      */
-    protected const IMAGE_GENERATION_PROVIDERS = ['openai', 'gemini'];
+    protected const IMAGE_GENERATION_PROVIDERS = ['gemini', 'openai'];
+
+    /**
+     * Nano Banana model for image generation (Gemini 2.0 Flash with image output).
+     */
+    protected const NANO_BANANA_MODEL = 'gemini-2.0-flash-exp';
 
     protected ImageManager $imageManager;
 
@@ -201,15 +207,16 @@ class FeaturedImageService
 
     /**
      * Get the appropriate image generation model for the provider.
+     * Nano Banana (Gemini) is the preferred provider for all image generation.
      */
     protected function getImageModel(AiProvider $aiProvider): string
     {
         return match ($aiProvider->provider) {
-            // Use gpt-image-1 if configured, otherwise fall back to dall-e-3
-            // gpt-image-1 requires organization verification on OpenAI
+            // Nano Banana - Gemini's native image generation (preferred)
+            'gemini' => config('services.gemini.image_model', self::NANO_BANANA_MODEL),
+            // OpenAI fallback - use gpt-image-1 if configured, otherwise dall-e-3
             'openai' => config('services.openai.image_model', 'dall-e-3'),
-            'gemini' => 'imagen-3.0-generate-002',
-            default => throw new \RuntimeException("Provider {$aiProvider->provider} does not support image generation"),
+            default => throw new \RuntimeException("Provider {$aiProvider->provider} does not support image generation. Use Gemini (Nano Banana) for best results."),
         };
     }
 
