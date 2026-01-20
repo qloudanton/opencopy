@@ -46,9 +46,9 @@ class ArticleImageService
 
     /**
      * Providers that support image generation.
-     * Gemini (Nano Banana) is the preferred provider for image generation.
+     * OpenAI (DALL-E) is the preferred provider for image generation.
      */
-    protected const IMAGE_GENERATION_PROVIDERS = ['gemini', 'openai'];
+    protected const IMAGE_GENERATION_PROVIDERS = ['openai', 'gemini'];
 
     /**
      * Nano Banana model for image generation (Gemini 2.0 Flash with image output).

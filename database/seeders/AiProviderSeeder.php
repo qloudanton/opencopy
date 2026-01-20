@@ -19,7 +19,7 @@ class AiProviderSeeder extends Seeder
         }
 
         $anthropicKey = env('ANTHROPIC_API_KEY');
-        $geminiKey = env('GEMINI_API_KEY');
+        $openaiKey = env('OPENAI_API_KEY');
 
         if (! $anthropicKey) {
             $this->command->warn('ANTHROPIC_API_KEY not set in .env - skipping Claude provider');
@@ -43,27 +43,32 @@ class AiProviderSeeder extends Seeder
             $this->command->info('✓ Claude (Anthropic) added - Default for text generation');
         }
 
-        if (! $geminiKey) {
-            $this->command->warn('GEMINI_API_KEY not set in .env - skipping Gemini provider');
+        if (! $openaiKey) {
+            $this->command->warn('OPENAI_API_KEY not set in .env - skipping OpenAI provider');
         } else {
-            // Add Gemini for image generation (Nano Banana)
+            // Add OpenAI for image generation (DALL-E)
             AiProvider::updateOrCreate(
                 [
                     'user_id' => $user->id,
-                    'provider' => 'gemini',
+                    'provider' => 'openai',
                 ],
                 [
-                    'name' => 'Gemini (Nano Banana)',
-                    'api_key' => $geminiKey,
-                    'model' => 'gemini-2.0-flash-exp',
+                    'name' => 'OpenAI (DALL-E)',
+                    'api_key' => $openaiKey,
+                    'model' => 'dall-e-3',
                     'is_default' => false,
                     'is_active' => true,
                     'supports_text' => true,
                     'supports_image' => true,
                 ]
             );
-            $this->command->info('✓ Gemini (Nano Banana) added - For image generation');
+            $this->command->info('✓ OpenAI (DALL-E) added - For image generation');
         }
+
+        // Disable any existing Gemini provider (not available in UK)
+        AiProvider::where('user_id', $user->id)
+            ->where('provider', 'gemini')
+            ->update(['is_active' => false]);
 
         $this->command->info('AI Providers setup complete!');
     }
