@@ -231,7 +231,8 @@ class FeaturedImageService
             'openai' => $imageModel === 'gpt-image-1'
                 ? ['quality' => 'high', 'size' => '1536x1024']
                 : ['quality' => 'hd', 'style' => 'natural', 'size' => '1792x1024'],
-            'gemini' => ['aspect_ratio' => '16:9'],
+            // Gemini 2.0 Flash doesn't support aspect_ratio parameter
+            'gemini' => [],
             default => [],
         };
     }

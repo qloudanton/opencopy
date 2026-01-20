@@ -332,13 +332,12 @@ class ArticleImageService
         };
 
         // Provider-specific options for better quality
+        // Note: Gemini 2.0 Flash doesn't support aspect_ratio parameter
         $providerOptions = match ($aiProvider->provider) {
             'openai' => $imageModel === 'gpt-image-1'
                 ? ['quality' => 'high', 'size' => '1536x1024']      // GPT Image settings
                 : ['quality' => 'hd', 'style' => 'natural', 'size' => '1792x1024'],  // DALL-E 3 HD
-            'gemini' => [
-                'aspect_ratio' => '3:2',     // Close to our 1200x800 target
-            ],
+            'gemini' => [],
             default => [],
         };
 
@@ -490,7 +489,8 @@ class ArticleImageService
             'openai' => $imageModel === 'gpt-image-1'
                 ? ['quality' => 'high', 'size' => '1536x1024']
                 : ['quality' => 'hd', 'style' => 'natural', 'size' => '1792x1024'],
-            'gemini' => ['aspect_ratio' => '3:2'],
+            // Gemini 2.0 Flash doesn't support aspect_ratio parameter
+            'gemini' => [],
             default => [],
         };
     }
