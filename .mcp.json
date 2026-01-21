@@ -6,6 +6,20 @@
                 "artisan",
                 "boost:mcp"
             ]
+        },
+        "railway": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@railway/mcp-server"
+            ]
+        },
+        "cloudflare": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@cloudflare/mcp-server-cloudflare"
+            ]
         }
     }
 }
