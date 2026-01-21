@@ -15,11 +15,11 @@
             ]
         },
         "cloudflare-bindings": {
-            "type": "http",
+            "transport": "http",
             "url": "https://bindings.mcp.cloudflare.com/mcp"
         },
         "cloudflare-observability": {
-            "type": "http",
+            "transport": "http",
             "url": "https://observability.mcp.cloudflare.com/mcp"
         }
     }
