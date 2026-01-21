@@ -1,4 +1,4 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.3-cli-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
@@ -41,11 +41,13 @@ RUN composer dump-autoload --optimize
 # Build frontend
 RUN npm run build
 
-# Set permissions
-RUN chmod -R 775 storage bootstrap/cache
+# Create storage link and set permissions
+RUN mkdir -p storage/app/public \
+    && php artisan storage:link || true \
+    && chmod -R 775 storage bootstrap/cache
 
 # Expose port
 EXPOSE 8080
 
-# Start command
-CMD php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8080
+# Start command - use PHP built-in server from public directory
+CMD php artisan migrate --force && php -S 0.0.0.0:8080 -t public public/index.php
