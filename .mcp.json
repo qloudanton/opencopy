@@ -6,24 +6,6 @@
                 "artisan",
                 "boost:mcp"
             ]
-        },
-        "railway": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@railway/mcp-server"
-            ],
-            "env": {
-                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
-            }
-        },
-        "cloudflare-bindings": {
-            "transport": "http",
-            "url": "https://bindings.mcp.cloudflare.com/mcp"
-        },
-        "cloudflare-observability": {
-            "transport": "http",
-            "url": "https://observability.mcp.cloudflare.com/mcp"
         }
     }
 }
