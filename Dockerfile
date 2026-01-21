@@ -34,13 +34,9 @@ COPY . .
 RUN composer dump-autoload --optimize
 RUN npm run build
 
-# Laravel production setup
+# Laravel production setup - create directories only (caching done at runtime)
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
-RUN php artisan storage:link || true
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
 
 RUN mkdir -p /etc/supervisor/conf.d
 RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
@@ -68,4 +64,13 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
 
 EXPOSE 8080
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/app.conf"]
+# Create startup script that caches config at runtime (when env vars are available)
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'php artisan config:cache' >> /app/start.sh && \
+    echo 'php artisan route:cache' >> /app/start.sh && \
+    echo 'php artisan view:cache' >> /app/start.sh && \
+    echo 'php artisan storage:link || true' >> /app/start.sh && \
+    echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/app.conf' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+CMD ["/app/start.sh"]
