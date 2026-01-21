@@ -64,12 +64,9 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
 
 EXPOSE 8080
 
-# Create startup script that caches config at runtime (when env vars are available)
+# Create startup script (no caching - run fresh each time)
 RUN echo '#!/bin/bash' > /app/start.sh && \
-    echo 'php artisan config:cache' >> /app/start.sh && \
-    echo 'php artisan route:cache' >> /app/start.sh && \
-    echo 'php artisan view:cache' >> /app/start.sh && \
-    echo 'php artisan storage:link || true' >> /app/start.sh && \
+    echo 'php artisan storage:link 2>/dev/null || true' >> /app/start.sh && \
     echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/app.conf' >> /app/start.sh && \
     chmod +x /app/start.sh
 
