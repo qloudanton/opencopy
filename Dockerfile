@@ -1,5 +1,5 @@
-# Cache bust: 2026-01-21-v1
-FROM php:8.4-cli
+# Force specific PHP version to bust Railway cache - symfony/filesystem 8.0.1 requires PHP 8.4+
+FROM php:8.4.3-cli
 
 RUN apt-get update && apt-get install -y \
     git \
