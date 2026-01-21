@@ -36,9 +36,9 @@ return [
     ],
 
     'openai' => [
-        // dall-e-3: fast, no verification required
-        // gpt-image-1: better quality but requires org verification
-        'image_model' => env('OPENAI_IMAGE_MODEL', 'dall-e-3'),
+        // gpt-image-1: GPT-4o native image generation (replaces deprecated DALL-E)
+        // DALL-E 3 deprecated May 2026
+        'image_model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-1'),
     ],
 
 ];
