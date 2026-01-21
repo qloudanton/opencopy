@@ -12,7 +12,10 @@
             "args": [
                 "-y",
                 "@railway/mcp-server"
-            ]
+            ],
+            "env": {
+                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
+            }
         },
         "cloudflare-bindings": {
             "transport": "http",
