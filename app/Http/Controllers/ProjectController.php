@@ -163,7 +163,7 @@ class ProjectController extends Controller
         // Active integrations
         $integrations = $project->integrations()
             ->where('is_active', true)
-            ->get(['id', 'platform', 'name', 'is_active', 'last_published_at']);
+            ->get(['id', 'type', 'name', 'is_active', 'last_connected_at']);
 
         return Inertia::render('Projects/Show', [
             'project' => $project->only([
