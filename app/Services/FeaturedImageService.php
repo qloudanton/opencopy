@@ -47,7 +47,7 @@ class FeaturedImageService
         $existingImage = $article->images()->where('type', 'featured')->first();
         if ($existingImage) {
             if ($existingImage->path) {
-                Storage::disk('public')->delete($existingImage->path);
+                Storage::disk(config('filesystems.images'))->delete($existingImage->path);
             }
             $existingImage->delete();
         }
@@ -81,7 +81,7 @@ class FeaturedImageService
         $finalPath = $this->overlayText($backgroundPath, $article->title, $brandColor, $style);
 
         // Get file info
-        $fullPath = Storage::disk('public')->path($finalPath);
+        $fullPath = Storage::disk(config('filesystems.images'))->path($finalPath);
         $fileSize = filesize($fullPath);
 
         // Create image record
@@ -92,7 +92,7 @@ class FeaturedImageService
             'source' => 'ai_generated',
             'prompt' => $this->buildPrompt($article, $style, $brandColor),
             'path' => $finalPath,
-            'url' => Storage::disk('public')->url($finalPath),
+            'url' => Storage::disk(config('filesystems.images'))->url($finalPath),
             'alt_text' => $article->title,
             'caption' => null,
             'width' => self::WIDTH,
@@ -108,7 +108,7 @@ class FeaturedImageService
 
         // Clean up background image
         if ($backgroundPath !== $finalPath) {
-            Storage::disk('public')->delete($backgroundPath);
+            Storage::disk(config('filesystems.images'))->delete($backgroundPath);
         }
 
         return [
@@ -174,7 +174,7 @@ class FeaturedImageService
 
         // Save to storage
         $filename = 'featured-images/bg-'.Str::random(32).'.png';
-        Storage::disk('public')->put($filename, $image->toPng()->toString());
+        Storage::disk(config('filesystems.images'))->put($filename, $image->toPng()->toString());
 
         return $filename;
     }
@@ -243,7 +243,7 @@ class FeaturedImageService
         $this->addEdgeDecoration($image, $brandColor, $style);
 
         $filename = 'featured-images/bg-'.Str::random(32).'.png';
-        Storage::disk('public')->put($filename, $image->toPng()->toString());
+        Storage::disk(config('filesystems.images'))->put($filename, $image->toPng()->toString());
 
         return $filename;
     }
@@ -426,7 +426,7 @@ class FeaturedImageService
      */
     protected function overlayText(string $backgroundPath, string $title, string $brandColor, string $style): string
     {
-        $fullPath = Storage::disk('public')->path($backgroundPath);
+        $fullPath = Storage::disk(config('filesystems.images'))->path($backgroundPath);
         $image = $this->imageManager->read($fullPath);
 
         // Parse title into main title and subtitle
@@ -489,7 +489,7 @@ class FeaturedImageService
 
         // Save final image
         $filename = 'featured-images/'.Str::random(32).'.png';
-        Storage::disk('public')->put($filename, $image->toPng()->toString());
+        Storage::disk(config('filesystems.images'))->put($filename, $image->toPng()->toString());
 
         return $filename;
     }
