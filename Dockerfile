@@ -1,3 +1,4 @@
+# Cache bust: 2026-01-21-v1
 FROM php:8.4-cli
 
 RUN apt-get update && apt-get install -y \
