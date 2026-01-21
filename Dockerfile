@@ -1,4 +1,5 @@
-FROM php:8.4-cli
+# Force PHP 8.4.3
+FROM php:8.4.3-cli
 
 RUN apt-get update && apt-get install -y \
     git \
