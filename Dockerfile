@@ -1,4 +1,4 @@
-# Force PHP 8.4.3
+# Force specific PHP version to bust Railway cache - symfony/filesystem 8.0.1 requires PHP 8.4+
 FROM php:8.4.3-cli
 
 RUN apt-get update && apt-get install -y \
@@ -33,6 +33,14 @@ COPY . .
 
 RUN composer dump-autoload --optimize
 RUN npm run build
+
+# Laravel production setup
+RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
+RUN php artisan storage:link || true
+RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
 
 RUN mkdir -p /etc/supervisor/conf.d
 RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
