@@ -34,7 +34,7 @@ COPY . .
 RUN composer dump-autoload --optimize
 RUN npm run build
 
-# Laravel setup
+# Laravel production setup
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 RUN php artisan storage:link || true
