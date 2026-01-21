@@ -34,6 +34,14 @@ COPY . .
 RUN composer dump-autoload --optimize
 RUN npm run build
 
+# Laravel setup
+RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache
+RUN php artisan storage:link || true
+RUN php artisan config:cache
+RUN php artisan route:cache
+RUN php artisan view:cache
+
 RUN mkdir -p /etc/supervisor/conf.d
 RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
     echo 'nodaemon=true' >> /etc/supervisor/conf.d/app.conf && \
