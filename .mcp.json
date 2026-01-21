@@ -14,12 +14,13 @@
                 "@railway/mcp-server"
             ]
         },
-        "cloudflare": {
-            "command": "npx",
-            "args": [
-                "-y",
-                "@cloudflare/mcp-server-cloudflare"
-            ]
+        "cloudflare-bindings": {
+            "type": "http",
+            "url": "https://bindings.mcp.cloudflare.com/mcp"
+        },
+        "cloudflare-observability": {
+            "type": "http",
+            "url": "https://observability.mcp.cloudflare.com/mcp"
         }
     }
 }
