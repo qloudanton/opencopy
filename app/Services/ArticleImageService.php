@@ -226,7 +226,7 @@ class ArticleImageService
         }
 
         // Get file info
-        $fullPath = Storage::disk('public')->path($imagePath);
+        $fullPath = Storage::disk(config('filesystems.images'))->path($imagePath);
         $fileSize = filesize($fullPath);
 
         // Create image record
@@ -237,7 +237,7 @@ class ArticleImageService
             'source' => 'ai_generated',
             'prompt' => $prompt,
             'path' => $imagePath,
-            'url' => Storage::disk('public')->url($imagePath),
+            'url' => Storage::disk(config('filesystems.images'))->url($imagePath),
             'alt_text' => $description,
             'caption' => null,
             'width' => self::WIDTH,
@@ -364,7 +364,7 @@ class ArticleImageService
 
         // Save to storage
         $filename = 'article-images/'.Str::random(32).'.png';
-        Storage::disk('public')->put($filename, $image->toPng()->toString());
+        Storage::disk(config('filesystems.images'))->put($filename, $image->toPng()->toString());
 
         return $filename;
     }
@@ -392,7 +392,7 @@ class ArticleImageService
         }
 
         $filename = 'article-images/placeholder-'.Str::random(32).'.png';
-        Storage::disk('public')->put($filename, $image->toPng()->toString());
+        Storage::disk(config('filesystems.images'))->put($filename, $image->toPng()->toString());
 
         return $filename;
     }
