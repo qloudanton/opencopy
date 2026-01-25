@@ -211,8 +211,8 @@ Railway makes scaling easy:
 
 ## Support
 
-- [GitHub Issues](https://github.com/qloudanton/opencopy/issues)
-- [Documentation](https://github.com/qloudanton/opencopy)
+- [GitHub Issues](https://github.com/WebFoundryAI/nexus_opencopy/issues)
+- [Documentation](https://github.com/WebFoundryAI/nexus_opencopy)
 
 ## Security Notes
 
