@@ -42,6 +42,10 @@ RUN chmod -R 775 storage bootstrap/cache
 RUN echo '#!/bin/bash' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
+    echo '# Set default PORT if not provided by Railway' >> /app/start.sh && \
+    echo 'export PORT="${PORT:-8080}"' >> /app/start.sh && \
+    echo 'echo "Starting server on port $PORT"' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
     echo '# Wait a moment for any DB to be ready' >> /app/start.sh && \
     echo 'sleep 2' >> /app/start.sh && \
     echo '' >> /app/start.sh && \
@@ -82,7 +86,8 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
     echo 'logfile_maxbytes=0' >> /etc/supervisor/conf.d/app.conf && \
     echo '' >> /etc/supervisor/conf.d/app.conf && \
     echo '[program:web]' >> /etc/supervisor/conf.d/app.conf && \
-    echo 'command=php artisan serve --host=0.0.0.0 --port=8080' >> /etc/supervisor/conf.d/app.conf && \
+    echo 'command=php artisan serve --host=0.0.0.0 --port=%(ENV_PORT)s' >> /etc/supervisor/conf.d/app.conf && \
+    echo 'environment=PORT="%(ENV_PORT)s"' >> /etc/supervisor/conf.d/app.conf && \
     echo 'autostart=true' >> /etc/supervisor/conf.d/app.conf && \
     echo 'autorestart=true' >> /etc/supervisor/conf.d/app.conf && \
     echo 'stdout_logfile=/dev/stdout' >> /etc/supervisor/conf.d/app.conf && \
@@ -99,6 +104,8 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
     echo 'stderr_logfile=/dev/stderr' >> /etc/supervisor/conf.d/app.conf && \
     echo 'stderr_logfile_maxbytes=0' >> /etc/supervisor/conf.d/app.conf
 
-EXPOSE 8080
+# Railway injects PORT env var; default to 8080 for local testing
+ENV PORT=8080
+EXPOSE $PORT
 
 CMD ["/app/start.sh"]
