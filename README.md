@@ -102,28 +102,38 @@
 
 ## Installation
 
-### 1. Clone the Repository
+### Quick Deploy to Railway
+
+The fastest way to get started:
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/opencopy)
+
+See [Railway Deployment Guide](docs/RAILWAY_DEPLOYMENT.md) for detailed instructions.
+
+### Local Installation
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/qloudanton/opencopy.git
 cd opencopy
 ```
 
-### 2. Install Dependencies
+#### 2. Install Dependencies
 
 ```bash
 composer install
 npm install
 ```
 
-### 3. Environment Setup
+#### 3. Environment Setup
 
 ```bash
 cp .env.example .env
 php artisan key:generate
 ```
 
-### 4. Database Setup
+#### 4. Database Setup
 
 For SQLite (simplest):
 
@@ -149,13 +159,13 @@ Then run migrations:
 php artisan migrate
 ```
 
-### 5. Build Frontend Assets
+#### 5. Build Frontend Assets
 
 ```bash
 npm run build
 ```
 
-### 6. Start the Application
+#### 6. Start the Application
 
 For development:
 
@@ -167,7 +177,7 @@ php artisan serve & npm run dev
 
 For production, configure your web server (Nginx/Apache) to point to the `public` directory.
 
-### 7. Create Your Account
+#### 7. Create Your Account
 
 Visit `http://localhost:8000` and register your first account.
 
