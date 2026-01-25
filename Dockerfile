@@ -37,10 +37,38 @@ RUN npm run build
 # Laravel production setup
 RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
-RUN php artisan storage:link || true
-RUN php artisan config:cache
-RUN php artisan route:cache
-RUN php artisan view:cache
+
+# Create startup script to run migrations and cache at runtime
+RUN echo '#!/bin/bash' > /app/start.sh && \
+    echo 'set -e' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Wait a moment for any DB to be ready' >> /app/start.sh && \
+    echo 'sleep 2' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Create SQLite database if using SQLite and file does not exist' >> /app/start.sh && \
+    echo 'if [ "$DB_CONNECTION" = "sqlite" ] || [ -z "$DB_CONNECTION" ]; then' >> /app/start.sh && \
+    echo '  DB_PATH="${DB_DATABASE:-/app/database/database.sqlite}"' >> /app/start.sh && \
+    echo '  if [ ! -f "$DB_PATH" ]; then' >> /app/start.sh && \
+    echo '    echo "Creating SQLite database at $DB_PATH"' >> /app/start.sh && \
+    echo '    mkdir -p "$(dirname "$DB_PATH")"' >> /app/start.sh && \
+    echo '    touch "$DB_PATH"' >> /app/start.sh && \
+    echo '  fi' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Run migrations' >> /app/start.sh && \
+    echo 'php artisan migrate --force --no-interaction' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Create storage link' >> /app/start.sh && \
+    echo 'php artisan storage:link || true' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Cache configuration for production performance' >> /app/start.sh && \
+    echo 'php artisan config:cache' >> /app/start.sh && \
+    echo 'php artisan route:cache' >> /app/start.sh && \
+    echo 'php artisan view:cache' >> /app/start.sh && \
+    echo '' >> /app/start.sh && \
+    echo '# Start supervisor' >> /app/start.sh && \
+    echo 'exec /usr/bin/supervisord -c /etc/supervisor/conf.d/app.conf' >> /app/start.sh && \
+    chmod +x /app/start.sh
 
 RUN mkdir -p /etc/supervisor/conf.d
 RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
@@ -68,4 +96,4 @@ RUN echo '[supervisord]' > /etc/supervisor/conf.d/app.conf && \
 
 EXPOSE 8080
 
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/app.conf"]
+CMD ["/app/start.sh"]
