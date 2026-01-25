@@ -225,9 +225,10 @@ Railway makes scaling easy:
 
 ## Cost Estimation
 
-Railway pricing (as of 2024):
-- **Free tier**: $5 credit/month (enough for small projects)
-- **Pro plan**: $20/month + usage
+Railway pricing:
+- Check [Railway Pricing](https://railway.app/pricing) for current rates
+- **Free tier**: Includes monthly credits (sufficient for small projects)
+- **Pro plan**: Starts at $20/month + usage
 - **PostgreSQL**: Included in plans or pay-as-you-go
 
 Plus AI costs:
