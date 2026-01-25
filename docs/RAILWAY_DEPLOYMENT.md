@@ -170,7 +170,7 @@ Common causes:
 If the Docker build fails:
 
 1. Check that `package.json` and `composer.json` are valid
-2. Ensure Node.js 20+ and PHP 8.3+ are supported
+2. Ensure Node.js 20+ and PHP 8.4+ are supported
 3. Review Railway build logs for specific errors
 
 ## Performance Optimization
@@ -211,8 +211,8 @@ Railway makes scaling easy:
 
 ## Support
 
-- [GitHub Issues](https://github.com/qloudanton/opencopy/issues)
-- [Documentation](https://github.com/qloudanton/opencopy)
+- [GitHub Issues](https://github.com/WebFoundryAI/nexus_opencopy/issues)
+- [Documentation](https://github.com/WebFoundryAI/nexus_opencopy)
 
 ## Security Notes
 
