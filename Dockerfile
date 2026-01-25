@@ -47,7 +47,12 @@ RUN echo '#!/bin/bash' > /app/start.sh && \
     echo '' >> /app/start.sh && \
     echo '# Create SQLite database if using SQLite and file does not exist' >> /app/start.sh && \
     echo 'if [ "$DB_CONNECTION" = "sqlite" ] || [ -z "$DB_CONNECTION" ]; then' >> /app/start.sh && \
+    echo '  # Use Laravel default path if DB_DATABASE is not set' >> /app/start.sh && \
     echo '  DB_PATH="${DB_DATABASE:-/app/database/database.sqlite}"' >> /app/start.sh && \
+    echo '  # Handle relative paths' >> /app/start.sh && \
+    echo '  if [[ "$DB_PATH" != /* ]]; then' >> /app/start.sh && \
+    echo '    DB_PATH="/app/database/$DB_PATH"' >> /app/start.sh && \
+    echo '  fi' >> /app/start.sh && \
     echo '  if [ ! -f "$DB_PATH" ]; then' >> /app/start.sh && \
     echo '    echo "Creating SQLite database at $DB_PATH"' >> /app/start.sh && \
     echo '    mkdir -p "$(dirname "$DB_PATH")"' >> /app/start.sh && \
